@@ -10,6 +10,7 @@ import space.kscience.controls.api.PropertyChangedMessage
 import space.kscience.controls.spec.DevicePropertySpec
 import space.kscience.controls.spec.name
 import space.kscience.dataforge.meta.MetaConverter
+import space.kscience.dataforge.names.Name
 
 /**
  * An interface for device property history.
@@ -34,6 +35,7 @@ public interface PropertyHistory<T> {
 public class CollectedPropertyHistory<T>(
     public val scope: CoroutineScope,
     eventFlow: Flow<DeviceMessage>,
+    public val deviceName: Name,
     public val propertyName: String,
     public val converter: MetaConverter<T>,
     maxSize: Int = 1000,
@@ -41,7 +43,7 @@ public class CollectedPropertyHistory<T>(
 
     private val store: SharedFlow<ValueWithTime<T>> = eventFlow
         .filterIsInstance<PropertyChangedMessage>()
-        .filter { it.property == propertyName }
+        .filter { it.sourceDevice == deviceName && it.property == propertyName }
         .map { ValueWithTime(converter.read(it.value), it.time) }
         .shareIn(scope, started = SharingStarted.Eagerly, replay = maxSize)
 
@@ -54,13 +56,15 @@ public class CollectedPropertyHistory<T>(
  */
 public fun <T> Device.collectPropertyHistory(
     scope: CoroutineScope = this,
+    deviceName: Name,
     propertyName: String,
     converter: MetaConverter<T>,
     maxSize: Int = 1000,
-): PropertyHistory<T> = CollectedPropertyHistory(scope, messageFlow, propertyName, converter, maxSize)
+): PropertyHistory<T> = CollectedPropertyHistory(scope, messageFlow, deviceName, propertyName, converter, maxSize)
 
 public fun <D : Device, T> D.collectPropertyHistory(
     scope: CoroutineScope = this,
+    deviceName: Name,
     spec: DevicePropertySpec<D, T>,
     maxSize: Int = 1000,
-): PropertyHistory<T> = collectPropertyHistory(scope, spec.name, spec.converter, maxSize)
+): PropertyHistory<T> = collectPropertyHistory(scope, deviceName, spec.name, spec.converter, maxSize)
