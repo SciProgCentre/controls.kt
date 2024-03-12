@@ -127,11 +127,11 @@ public fun CoroutineScope.launchMagixRegistry(
  *
  * If [registryEndpoint] field is provided, send request only to given endpoint.
  *
- * @param endpointName the name of endpoint requesting a property
+ * @param sourceEndpoint the name of endpoint requesting a property
  */
 public suspend fun MagixEndpoint.getProperty(
     propertyName: String,
-    endpointName: String,
+    sourceEndpoint: String,
     user: JsonElement? = null,
     registryEndpoint: String? = null,
 ): Flow<Pair<String, JsonElement>> = subscribe(
@@ -146,7 +146,7 @@ public suspend fun MagixEndpoint.getProperty(
     send(
         MagixRegistryMessage.format,
         MagixRegistryRequestMessage(propertyName),
-        source = endpointName,
+        source = sourceEndpoint,
         target = registryEndpoint,
         user = user
     )
