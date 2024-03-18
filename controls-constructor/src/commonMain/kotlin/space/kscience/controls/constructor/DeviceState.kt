@@ -1,6 +1,7 @@
 package space.kscience.controls.constructor
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -11,6 +12,7 @@ import space.kscience.controls.spec.MutableDevicePropertySpec
 import space.kscience.controls.spec.name
 import space.kscience.dataforge.meta.Meta
 import space.kscience.dataforge.meta.MetaConverter
+import kotlin.reflect.KProperty
 import kotlin.time.Duration
 
 /**
@@ -29,12 +31,23 @@ public val <T> DeviceState<T>.metaFlow: Flow<Meta> get() = valueFlow.map(convert
 
 public val <T> DeviceState<T>.valueAsMeta: Meta get() = converter.convert(value)
 
+public operator fun <T> DeviceState<T>.getValue(thisRef: Any?, property: KProperty<*>): T = value
+
+/**
+ * Collect values in a given [scope]
+ */
+public fun <T> DeviceState<T>.collectValuesIn(scope: CoroutineScope, block: suspend (T)->Unit): Job =
+    valueFlow.onEach(block).launchIn(scope)
 
 /**
  * A mutable state of a device
  */
 public interface MutableDeviceState<T> : DeviceState<T> {
     override var value: T
+}
+
+public operator fun <T> MutableDeviceState<T>.setValue(thisRef: Any?, property: KProperty<*>, value: T) {
+    this.value = value
 }
 
 public var <T : Any> MutableDeviceState<T>.valueAsMeta: Meta
@@ -216,6 +229,9 @@ private class MutableExternalState<T>(
         }
 }
 
+/**
+ * Create a [DeviceState] that regularly reads and caches an external value
+ */
 public fun <T> DeviceState.Companion.external(
     scope: CoroutineScope,
     converter: MetaConverter<T>,

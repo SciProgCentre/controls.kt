@@ -15,6 +15,7 @@ kscience {
     jvm()
     js()
     native()
+    useSerialization()
     commonMain {
         api(projects.magix.magixApi)
         api("space.kscience:dataforge-meta:$dataforgeVersion")

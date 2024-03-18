@@ -52,8 +52,9 @@ class LinearDrive(
     val end by device(LimitSwitch.factory(state.atEndState))
 
 
-    val position by property(state)
-    var target by mutableProperty(pid.mutablePropertyAsState(Regulator.target, 0.0))
+    val positionState: DoubleRangeState by property(state)
+    private val targetState: MutableDeviceState<Double> by property(pid.mutablePropertyAsState(Regulator.target, 0.0))
+    var target by targetState
 }
 
 

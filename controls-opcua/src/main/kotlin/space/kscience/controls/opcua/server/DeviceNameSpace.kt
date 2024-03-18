@@ -75,7 +75,7 @@ public class DeviceNameSpace(
 
                 browseName = newQualifiedName(propertyName)
                 displayName = LocalizedText.english(propertyName)
-                dataType = if (descriptor.metaDescriptor.children.isNotEmpty()) {
+                dataType = if (descriptor.metaDescriptor.nodes.isNotEmpty()) {
                     Identifiers.String
                 } else when (descriptor.metaDescriptor.valueTypes?.first()) {
                     null, ValueType.STRING, ValueType.NULL -> Identifiers.String

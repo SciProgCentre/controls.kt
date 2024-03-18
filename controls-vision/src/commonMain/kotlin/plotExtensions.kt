@@ -2,13 +2,8 @@
 
 package space.kscience.controls.vision
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.sample
-import kotlinx.coroutines.flow.transform
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
@@ -22,6 +17,7 @@ import space.kscience.controls.spec.DevicePropertySpec
 import space.kscience.controls.spec.name
 import space.kscience.dataforge.context.Context
 import space.kscience.dataforge.meta.*
+import space.kscience.dataforge.misc.DFExperimental
 import space.kscience.plotly.Plot
 import space.kscience.plotly.bar
 import space.kscience.plotly.models.Bar
@@ -183,4 +179,61 @@ public fun Plot.plotBooleanState(
     configuration: Bar.() -> Unit = {},
 ): Job = bar(configuration).run {
     updateFromState(context, state, { asValue() }, maxAge, maxPoints, minPoints, sampling)
+}
+
+private fun <T> Flow<T>.chunkedByPeriod(duration: Duration): Flow<List<T>> {
+    val collector: ArrayDeque<T> = ArrayDeque<T>()
+    return channelFlow {
+        coroutineScope {
+            launch {
+                while (isActive) {
+                    delay(duration)
+                    send(ArrayList(collector))
+                    collector.clear()
+                }
+            }
+            this@chunkedByPeriod.collect {
+                collector.add(it)
+            }
+        }
+    }
+}
+
+private fun List<Instant>.averageTime(): Instant {
+    val min = min()
+    val max = max()
+    val duration = max - min
+    return min + duration / 2
+}
+
+/**
+ * Average property value by [averagingInterval]. Return [missingValue] on each sample interval if no events arrived.
+ */
+@DFExperimental
+public fun Plot.plotAveragedDeviceProperty(
+    device: Device,
+    propertyName: String,
+    missingValue: Double = 0.0,
+    extractValue: Meta.() -> Double = { value?.double ?: missingValue },
+    maxAge: Duration = defaultMaxAge,
+    maxPoints: Int = defaultMaxPoints,
+    minPoints: Int = defaultMinPoints,
+    averagingInterval: Duration = defaultSampling,
+    coroutineScope: CoroutineScope = device.context,
+    configuration: Scatter.() -> Unit = {},
+): Job = scatter(configuration).run {
+    val data = TimeData()
+    device.propertyMessageFlow(propertyName).chunkedByPeriod(averagingInterval).transform { eventList ->
+        if(eventList.isEmpty()){
+            data.append(Clock.System.now(), missingValue.asValue())
+        } else {
+            val time = eventList.map { it.time }.averageTime()
+            val value = eventList.map { extractValue(it.value) }.average()
+            data.append(time, value.asValue())
+        }
+        data.trim(maxAge, maxPoints, minPoints)
+        emit(data)
+    }.onEach {
+        it.fillPlot(x, y)
+    }.launchIn(coroutineScope)
 }

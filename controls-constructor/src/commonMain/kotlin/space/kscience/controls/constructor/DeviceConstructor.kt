@@ -10,7 +10,6 @@ import space.kscience.dataforge.names.Name
 import space.kscience.dataforge.names.asName
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
-import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 import kotlin.time.Duration
 
@@ -55,17 +54,17 @@ public abstract class DeviceConstructor(
     /**
      * Register a property and provide a direct reader for it
      */
-    public fun <T : Any> property(
-        state: DeviceState<T>,
+    public fun <T : Any, S: DeviceState<T>> property(
+        state: S,
         descriptorBuilder: PropertyDescriptor.() -> Unit = {},
         nameOverride: String? = null,
-    ): PropertyDelegateProvider<DeviceConstructor, ReadOnlyProperty<DeviceConstructor, T>> =
+    ): PropertyDelegateProvider<DeviceConstructor, ReadOnlyProperty<DeviceConstructor, S>> =
         PropertyDelegateProvider { _: DeviceConstructor, property ->
             val name = nameOverride ?: property.name
             val descriptor = PropertyDescriptor(name).apply(descriptorBuilder)
             registerProperty(descriptor, state)
             ReadOnlyProperty { _: DeviceConstructor, _ ->
-                state.value
+                state
             }
         }
 
@@ -79,37 +78,14 @@ public abstract class DeviceConstructor(
         initialState: T,
         descriptorBuilder: PropertyDescriptor.() -> Unit = {},
         nameOverride: String? = null,
-    ): PropertyDelegateProvider<DeviceConstructor, ReadOnlyProperty<DeviceConstructor, T>> = property(
+    ): PropertyDelegateProvider<DeviceConstructor, ReadOnlyProperty<DeviceConstructor, DeviceState<T>>> = property(
         DeviceState.external(this, metaConverter, readInterval, initialState, reader),
         descriptorBuilder,
         nameOverride,
     )
 
-
     /**
-     * Register a mutable property and provide a direct reader for it
-     */
-    public fun <T : Any> mutableProperty(
-        state: MutableDeviceState<T>,
-        descriptorBuilder: PropertyDescriptor.() -> Unit = {},
-        nameOverride: String? = null,
-    ): PropertyDelegateProvider<DeviceConstructor, ReadWriteProperty<DeviceConstructor, T>> =
-        PropertyDelegateProvider { _: DeviceConstructor, property ->
-            val name = nameOverride ?: property.name
-            val descriptor = PropertyDescriptor(name).apply(descriptorBuilder)
-            registerProperty(descriptor, state)
-            object : ReadWriteProperty<DeviceConstructor, T> {
-                override fun getValue(thisRef: DeviceConstructor, property: KProperty<*>): T = state.value
-
-                override fun setValue(thisRef: DeviceConstructor, property: KProperty<*>, value: T) {
-                    state.value = value
-                }
-
-            }
-        }
-
-    /**
-     * Register external state as a property
+     * Register a mutable external state as a property
      */
     public fun <T : Any> mutableProperty(
         metaConverter: MetaConverter<T>,
@@ -119,22 +95,22 @@ public abstract class DeviceConstructor(
         initialState: T,
         descriptorBuilder: PropertyDescriptor.() -> Unit = {},
         nameOverride: String? = null,
-    ): PropertyDelegateProvider<DeviceConstructor, ReadWriteProperty<DeviceConstructor, T>> = mutableProperty(
+    ): PropertyDelegateProvider<DeviceConstructor, ReadOnlyProperty<DeviceConstructor, MutableDeviceState<T>>> = property(
         DeviceState.external(this, metaConverter, readInterval, initialState, reader, writer),
         descriptorBuilder,
         nameOverride,
     )
 
     /**
-     * Create and register a virtual property with optional [callback]
+     * Create and register a virtual mutable property with optional [callback]
      */
-    public fun <T : Any> state(
+    public fun <T : Any> virtualProperty(
         metaConverter: MetaConverter<T>,
         initialState: T,
         descriptorBuilder: PropertyDescriptor.() -> Unit = {},
         nameOverride: String? = null,
         callback: (T) -> Unit = {},
-    ): PropertyDelegateProvider<DeviceConstructor, ReadWriteProperty<DeviceConstructor, T>> = mutableProperty(
+    ): PropertyDelegateProvider<DeviceConstructor, ReadOnlyProperty<DeviceConstructor, MutableDeviceState<T>>> = property(
         DeviceState.virtual(metaConverter, initialState, callback),
         descriptorBuilder,
         nameOverride,

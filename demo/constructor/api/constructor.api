@@ -14,7 +14,7 @@ public final class space/kscience/controls/demo/constructor/LinearDrive : space/
 	public final fun getDrive ()Lspace/kscience/controls/constructor/Drive;
 	public final fun getEnd ()Lspace/kscience/controls/constructor/LimitSwitch;
 	public final fun getPid ()Lspace/kscience/controls/constructor/PidRegulator;
-	public final fun getPosition ()D
+	public final fun getPositionState ()Lspace/kscience/controls/constructor/DoubleRangeState;
 	public final fun getStart ()Lspace/kscience/controls/constructor/LimitSwitch;
 	public final fun getTarget ()D
 	public final fun setTarget (D)V
