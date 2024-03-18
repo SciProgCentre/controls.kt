@@ -28,7 +28,7 @@ public open class DeviceGroup(
 ) : DeviceHub, CachingDevice {
 
     internal class Property(
-        val state: DeviceState<out Any>,
+        val state: DeviceState<*>,
         val descriptor: PropertyDescriptor,
     )
 
@@ -82,7 +82,7 @@ public open class DeviceGroup(
     /**
      * Register a new property based on [DeviceState]. Properties could be modified dynamically
      */
-    public fun registerProperty(descriptor: PropertyDescriptor, state: DeviceState<out Any>) {
+    public fun registerProperty(descriptor: PropertyDescriptor, state: DeviceState<*>) {
         val name = descriptor.name.parseAsName()
         require(properties[name] == null) { "Can't add property with name $name. It already exists." }
         properties[name] = Property(state, descriptor)

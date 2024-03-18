@@ -54,7 +54,7 @@ public abstract class DeviceConstructor(
     /**
      * Register a property and provide a direct reader for it
      */
-    public fun <T : Any, S: DeviceState<T>> property(
+    public fun <T, S: DeviceState<T>> property(
         state: S,
         descriptorBuilder: PropertyDescriptor.() -> Unit = {},
         nameOverride: String? = null,
@@ -104,7 +104,7 @@ public abstract class DeviceConstructor(
     /**
      * Create and register a virtual mutable property with optional [callback]
      */
-    public fun <T : Any> virtualProperty(
+    public fun <T> virtualProperty(
         metaConverter: MetaConverter<T>,
         initialState: T,
         descriptorBuilder: PropertyDescriptor.() -> Unit = {},

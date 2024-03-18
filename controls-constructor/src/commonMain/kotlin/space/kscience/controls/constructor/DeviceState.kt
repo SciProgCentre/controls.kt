@@ -50,7 +50,7 @@ public operator fun <T> MutableDeviceState<T>.setValue(thisRef: Any?, property: 
     this.value = value
 }
 
-public var <T : Any> MutableDeviceState<T>.valueAsMeta: Meta
+public var <T> MutableDeviceState<T>.valueAsMeta: Meta
     get() = converter.convert(value)
     set(arg) {
         value = converter.read(arg)

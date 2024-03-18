@@ -184,17 +184,15 @@ public fun Plot.plotBooleanState(
 private fun <T> Flow<T>.chunkedByPeriod(duration: Duration): Flow<List<T>> {
     val collector: ArrayDeque<T> = ArrayDeque<T>()
     return channelFlow {
-        coroutineScope {
-            launch {
-                while (isActive) {
-                    delay(duration)
-                    send(ArrayList(collector))
-                    collector.clear()
-                }
+        launch {
+            while (isActive) {
+                delay(duration)
+                send(ArrayList(collector))
+                collector.clear()
             }
-            this@chunkedByPeriod.collect {
-                collector.add(it)
-            }
+        }
+        this@chunkedByPeriod.collect {
+            collector.add(it)
         }
     }
 }
@@ -224,7 +222,7 @@ public fun Plot.plotAveragedDeviceProperty(
 ): Job = scatter(configuration).run {
     val data = TimeData()
     device.propertyMessageFlow(propertyName).chunkedByPeriod(averagingInterval).transform { eventList ->
-        if(eventList.isEmpty()){
+        if (eventList.isEmpty()) {
             data.append(Clock.System.now(), missingValue.asValue())
         } else {
             val time = eventList.map { it.time }.averageTime()
