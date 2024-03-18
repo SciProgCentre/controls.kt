@@ -3,8 +3,11 @@
 ## Unreleased
 
 ### Added
+- Value averaging plot extension
+- PLC4X bindings
 
 ### Changed
+- Constructor properties return `DeviceStat` in order to be able to subscribe to them
 
 ### Deprecated
 
