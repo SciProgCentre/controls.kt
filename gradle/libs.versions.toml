@@ -6,12 +6,44 @@ xodus = "2.0.1"
 
 uuid = "0.8.0"
 
+fazecast = "2.10.3"
+
+tornadofx = "1.7.20"
+
+plotlykt = "0.5.3"
+
+logback = "1.2.11"
+
+hivemq = "1.3.1"
+
+rabbitmq = "5.14.2"
+
+kmongo = "4.5.1"
+
 [libraries]
 
 dataforge-io = { module = "space.kscience:dataforge-io", version.ref = "dataforge" }
+
 uuid = { module = "com.benasher44:uuid", version.ref = "uuid" }
+
 xodus-entity-store = { module = "org.jetbrains.xodus:xodus-entity-store", version.ref = "xodus" }
+xodus-environment = { module = "org.jetbrains.xodus:xodus-environment", version.ref = "xodus" }
+xodus-vfs = { module = "org.jetbrains.xodus:xodus-vfs", version.ref = "xodus" }
+
 rsocket-ktor-client = { module = "io.rsocket.kotlin:rsocket-ktor-client", version.ref = "rsocket" }
 rsocket-ktor-server = { module = "io.rsocket.kotlin:rsocket-ktor-server", version.ref = "rsocket" }
 rsocket-transport-ktor-tcp = { module = "io.rsocket.kotlin:rsocket-transport-ktor-tcp", version.ref = "rsocket" }
 
+jSerialComm = { module = "com.fazecast:jSerialComm", version.ref = "fazecast" }
+
+tornadofx = { module = "no.tornado:tornadofx", version.ref = "tornadofx" }
+
+plotlykt-server = { module = "space.kscience:plotlykt-server", version.ref = "plotlykt" }
+
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+
+hivemq-mqtt-client = { module = "com.hivemq:hivemq-mqtt-client", version.ref = "hivemq" }
+
+rabbitmq-amqp-client = { module = "com.rabbitmq:amqp-client", version.ref = "rabbitmq" }
+
+kmongo-coroutine-serialization = { module = "org.litote.kmongo:kmongo-coroutine-serialization", version.ref = "kmongo" }

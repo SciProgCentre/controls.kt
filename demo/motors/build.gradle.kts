@@ -25,5 +25,5 @@ val dataforgeVersion: String by extra
 dependencies {
     implementation(project(":controls-ports-ktor"))
     implementation(projects.controlsMagix)
-    implementation("no.tornado:tornadofx:1.7.20")
+    implementation(libs.tornadofx)
 }

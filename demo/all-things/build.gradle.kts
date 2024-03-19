@@ -20,8 +20,8 @@ dependencies {
     implementation(projects.controlsOpcua)
 
     implementation(spclibs.ktor.client.cio)
-    implementation("no.tornado:tornadofx:1.7.20")
-    implementation("space.kscience:plotlykt-server:0.5.3")
+    implementation(libs.tornadofx)
+    implementation(libs.plotlykt.server)
 //    implementation("com.github.Ricky12Awesome:json-schema-serialization:0.6.6")
     implementation(spclibs.logback.classic)
 }

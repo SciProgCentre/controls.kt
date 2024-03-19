@@ -14,7 +14,7 @@ description = """
 
 dependencies {
     implementation(project(":magix:magix-rsocket"))
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk9:${KScienceVersions.coroutinesVersion}")
+    implementation(spclibs.kotlinx.coroutines.jdk9)
 }
 
 //java {

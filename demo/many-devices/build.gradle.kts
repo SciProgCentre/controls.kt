@@ -16,7 +16,7 @@ dependencies {
     implementation(projects.magix.magixZmq)
 
     implementation(spclibs.ktor.client.cio)
-    implementation("space.kscience:plotlykt-server:0.6.0")
+    implementation(libs.plotlykt.server)
     implementation(spclibs.logback.classic)
 }
 

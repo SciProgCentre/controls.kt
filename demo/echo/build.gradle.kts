@@ -14,7 +14,7 @@ dependencies {
     implementation(projects.magix.magixZmq)
     implementation(spclibs.ktor.client.cio)
 
-    implementation("ch.qos.logback:logback-classic:1.2.11")
+    implementation(libs.logback.classic)
 }
 kotlin{
     jvmToolchain(11)

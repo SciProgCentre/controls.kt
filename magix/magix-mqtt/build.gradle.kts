@@ -9,7 +9,7 @@ description = """
 
 dependencies {
     api(projects.magix.magixApi)
-    implementation("com.hivemq:hivemq-mqtt-client:1.3.1")
+    implementation(libs.hivemq.mqtt.client)
     implementation(spclibs.kotlinx.coroutines.jdk8)
 }
 

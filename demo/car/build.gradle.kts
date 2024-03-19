@@ -22,13 +22,13 @@ dependencies {
 //    implementation(projects.controlsMongo)
 
     implementation(spclibs.ktor.client.cio)
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.1")
-    implementation("no.tornado:tornadofx:1.7.20")
-    implementation("space.kscience:plotlykt-server:0.5.0")
-    implementation("ch.qos.logback:logback-classic:1.2.11")
-    implementation("org.jetbrains.xodus:xodus-entity-store:1.3.232")
-    implementation("org.jetbrains.xodus:xodus-environment:1.3.232")
-    implementation("org.jetbrains.xodus:xodus-vfs:1.3.232")
+    implementation(spclibs.kotlinx.datetime)
+    implementation(libs.tornadofx)
+    implementation(libs.plotlykt.server)
+    implementation(libs.logback.classic)
+    implementation(libs.xodus.entity.store)
+    implementation(libs.xodus.environment)
+    implementation(libs.xodus.vfs)
 //    implementation("org.litote.kmongo:kmongo-coroutine-serialization:4.4.0")
 }
 
