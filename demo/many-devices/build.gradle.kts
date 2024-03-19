@@ -9,16 +9,13 @@ repositories {
     maven("https://repo.kotlin.link")
 }
 
-val ktorVersion: String by rootProject.extra
-val rsocketVersion: String by rootProject.extra
-
 dependencies {
     implementation(projects.magix.magixServer)
     implementation(projects.controlsMagix)
     implementation(projects.magix.magixRsocket)
     implementation(projects.magix.magixZmq)
 
-    implementation("io.ktor:ktor-client-cio:$ktorVersion")
+    implementation(spclibs.ktor.client.cio)
     implementation("space.kscience:plotlykt-server:0.6.0")
     implementation(spclibs.logback.classic)
 }

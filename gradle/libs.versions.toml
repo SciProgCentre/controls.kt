@@ -1,0 +1,17 @@
+[versions]
+
+dataforge = "0.6.2-dev-3"
+rsocket = "0.15.4"
+xodus = "2.0.1"
+
+uuid = "0.8.0"
+
+[libraries]
+
+dataforge-io = { module = "space.kscience:dataforge-io", version.ref = "dataforge" }
+uuid = { module = "com.benasher44:uuid", version.ref = "uuid" }
+xodus-entity-store = { module = "org.jetbrains.xodus:xodus-entity-store", version.ref = "xodus" }
+rsocket-ktor-client = { module = "io.rsocket.kotlin:rsocket-ktor-client", version.ref = "rsocket" }
+rsocket-ktor-server = { module = "io.rsocket.kotlin:rsocket-ktor-server", version.ref = "rsocket" }
+rsocket-transport-ktor-tcp = { module = "io.rsocket.kotlin:rsocket-transport-ktor-tcp", version.ref = "rsocket" }
+

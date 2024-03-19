@@ -9,19 +9,16 @@ description = """
    A combined Magix event loop server with web server for visualization.
 """.trimIndent()
 
-val dataforgeVersion: String by rootProject.extra
-val ktorVersion: String by rootProject.extra
-
 dependencies {
     implementation(projects.controlsCore)
     implementation(projects.controlsPortsKtor)
     implementation(projects.magix.magixServer)
-    implementation("io.ktor:ktor-server-cio:$ktorVersion")
-    implementation("io.ktor:ktor-server-websockets:$ktorVersion")
-    implementation("io.ktor:ktor-server-content-negotiation:$ktorVersion")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
-    implementation("io.ktor:ktor-server-html-builder:$ktorVersion")
-    implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
+    implementation(spclibs.ktor.server.cio)
+    implementation(spclibs.ktor.server.websockets)
+    implementation(spclibs.ktor.server.content.negotiation)
+    implementation(spclibs.ktor.serialization.kotlinx.json)
+    implementation(spclibs.ktor.server.html.builder)
+    implementation(spclibs.ktor.server.status.pages)
 }
 
 readme{

@@ -10,9 +10,6 @@ repositories {
     maven("https://repo.kotlin.link")
 }
 
-val ktorVersion: String by rootProject.extra
-val rsocketVersion: String by rootProject.extra
-
 dependencies {
     implementation(projects.controlsCore)
     implementation(projects.magix.magixApi)
@@ -24,7 +21,7 @@ dependencies {
     implementation(projects.magix.magixStorage.magixStorageXodus)
 //    implementation(projects.controlsMongo)
 
-    implementation("io.ktor:ktor-client-cio:$ktorVersion")
+    implementation(spclibs.ktor.client.cio)
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.1")
     implementation("no.tornado:tornadofx:1.7.20")
     implementation("space.kscience:plotlykt-server:0.5.0")

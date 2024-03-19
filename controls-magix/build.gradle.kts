@@ -18,7 +18,7 @@ kscience {
     dependencies {
         api(projects.magix.magixApi)
         api(projects.controlsCore)
-        api("com.benasher44:uuid:0.8.0")
+        api(libs.uuid)
     }
 }
 

@@ -21,7 +21,7 @@ kscience {
     }
     useContextReceivers()
     dependencies {
-        api("space.kscience:dataforge-io:$dataforgeVersion")
+        api(libs.dataforge.io)
         api(spclibs.kotlinx.datetime)
     }
 }

@@ -17,7 +17,6 @@ kscience {
 }
 
 val dataforgeVersion: String by rootProject.extra
-val rsocketVersion: String by rootProject.extra
 val ktorVersion: String  = space.kscience.gradle.KScienceVersions.ktorVersion
 
 dependencies{
@@ -28,8 +27,8 @@ dependencies{
     api("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
     api("io.ktor:ktor-server-html-builder:$ktorVersion")
 
-    api("io.rsocket.kotlin:rsocket-ktor-server:$rsocketVersion")
-    api("io.rsocket.kotlin:rsocket-transport-ktor-tcp:$rsocketVersion")
+    api(libs.rsocket.ktor.server)
+    api(libs.rsocket.transport.ktor.tcp)
 }
 
 readme{
