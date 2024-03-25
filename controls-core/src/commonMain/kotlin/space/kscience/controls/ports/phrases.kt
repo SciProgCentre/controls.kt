@@ -42,6 +42,31 @@ public fun Flow<ByteArray>.withDelimiter(delimiter: ByteArray): Flow<ByteArray> 
     }
 }
 
+private fun Flow<ByteArray>.withFixedMessageSize(messageSize: Int): Flow<ByteArray> {
+    require(messageSize > 0) { "Message size should be positive" }
+
+    val output = Buffer()
+
+    onCompletion {
+        output.close()
+    }
+
+    return transform { chunk ->
+        val remaining: Int = (messageSize - output.size).toInt()
+        if (chunk.size >= remaining) {
+            output.write(chunk, endIndex = remaining)
+            emit(output.readByteArray())
+            output.clear()
+            //write the remaining chunk fragment
+            if(chunk.size> remaining) {
+                output.write(chunk, startIndex = remaining)
+            }
+        } else {
+            output.write(chunk)
+        }
+    }
+}
+
 /**
  * Transform byte fragments into utf-8 phrases using utf-8 delimiter
  */

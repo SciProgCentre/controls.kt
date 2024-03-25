@@ -12,6 +12,8 @@ import space.kscience.controls.manager.respondHubMessage
 import space.kscience.dataforge.context.error
 import space.kscience.dataforge.context.logger
 import space.kscience.magix.api.*
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 
 
 internal val controlsMagixFormat: MagixFormat<DeviceMessage> = MagixFormat(
@@ -38,7 +40,8 @@ internal fun generateId(request: MagixMessage): String = if (request.id != null)
 public fun DeviceManager.launchMagixService(
     endpoint: MagixEndpoint,
     endpointID: String = controlsMagixFormat.defaultFormat,
-): Job = context.launch {
+    coroutineContext: CoroutineContext = EmptyCoroutineContext,
+): Job = context.launch(coroutineContext) {
     endpoint.subscribe(controlsMagixFormat, targetFilter = listOf(endpointID, null)).onEach { (request, payload) ->
         val responsePayload = respondHubMessage(payload)
         responsePayload.forEach {

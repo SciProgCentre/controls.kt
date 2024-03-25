@@ -19,7 +19,7 @@ dependencies {
     implementation(projects.magix.magixZmq)
 
     implementation("io.ktor:ktor-client-cio:$ktorVersion")
-    implementation("space.kscience:plotlykt-server:0.6.0")
+    implementation("space.kscience:plotlykt-server:0.7.1")
     implementation(spclibs.logback.classic)
 }
 
