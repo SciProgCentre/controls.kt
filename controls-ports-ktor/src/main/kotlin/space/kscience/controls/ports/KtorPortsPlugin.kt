@@ -13,7 +13,7 @@ public class KtorPortsPlugin : AbstractPlugin() {
     override val tag: PluginTag get() = Companion.tag
 
     override fun content(target: String): Map<Name, Any> = when (target) {
-        PortFactory.TYPE -> mapOf("tcp".asName() to KtorTcpPort, "udp".asName() to KtorUdpPort)
+        Ports.ASYNCHRONOUS_PORT_TYPE -> mapOf("tcp".asName() to KtorTcpPort, "udp".asName() to KtorUdpPort)
         else -> emptyMap()
     }
 

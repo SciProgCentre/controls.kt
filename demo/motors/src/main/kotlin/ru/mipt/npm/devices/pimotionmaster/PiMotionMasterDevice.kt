@@ -25,10 +25,10 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class PiMotionMasterDevice(
     context: Context,
-    private val portFactory: PortFactory = KtorTcpPort,
+    private val portFactory: Factory<AsynchronousPort> = KtorTcpPort,
 ) : DeviceBySpec<PiMotionMasterDevice>(PiMotionMasterDevice, context), DeviceHub {
 
-    private var port: Port? = null
+    private var port: AsynchronousPort? = null
     //TODO make proxy work
     //PortProxy { portFactory(address ?: error("The device is not connected"), context) }
 
@@ -83,7 +83,7 @@ class PiMotionMasterDevice(
     suspend fun getErrorCode(): Int = mutex.withLock {
         withTimeout(timeoutValue) {
             sendCommandInternal("ERR?")
-            val errorString = port?.receiving()?.withStringDelimiter("\n")?.first() ?: error("Not connected to device")
+            val errorString = port?.subscribe()?.withStringDelimiter("\n")?.first() ?: error("Not connected to device")
             errorString.trim().toInt()
         }
     }
@@ -96,7 +96,7 @@ class PiMotionMasterDevice(
         try {
             withTimeout(timeoutValue) {
                 sendCommandInternal(command, *arguments)
-                val phrases = port?.receiving()?.withStringDelimiter("\n") ?: error("Not connected to device")
+                val phrases = port?.subscribe()?.withStringDelimiter("\n") ?: error("Not connected to device")
                 phrases.transformWhile { line ->
                     emit(line)
                     line.endsWith(" \n")

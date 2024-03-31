@@ -1,10 +1,8 @@
 package space.kscience.controls.ports
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import space.kscience.dataforge.context.Context
+import space.kscience.dataforge.meta.Meta
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import kotlin.coroutines.CoroutineContext
@@ -14,33 +12,39 @@ import kotlin.coroutines.CoroutineContext
  */
 public class UdpSocketPort(
     override val context: Context,
+    meta: Meta,
     private val socket: DatagramSocket,
     coroutineContext: CoroutineContext = context.coroutineContext,
-) : AbstractPort(context, coroutineContext) {
+) : AbstractAsynchronousPort(context, meta, coroutineContext) {
 
-    private val listenerJob = context.launch(Dispatchers.IO) {
-        while (isActive) {
-            val buf = ByteArray(socket.receiveBufferSize)
+    private var listenerJob: Job? = null
 
-            val packet = DatagramPacket(
-                buf,
-                buf.size,
-            )
-            socket.receive(packet)
+    override fun onOpen() {
+        listenerJob = context.launch(Dispatchers.IO) {
+            while (isActive) {
+                val buf = ByteArray(socket.receiveBufferSize)
 
-            val bytes = packet.data.copyOfRange(
-                packet.offset,
-                packet.offset + packet.length
-            )
-            receive(bytes)
+                val packet = DatagramPacket(
+                    buf,
+                    buf.size,
+                )
+                socket.receive(packet)
+
+                val bytes = packet.data.copyOfRange(
+                    packet.offset,
+                    packet.offset + packet.length
+                )
+                receive(bytes)
+            }
         }
     }
 
     override fun close() {
-        listenerJob.cancel()
+        listenerJob?.cancel()
+        super.close()
     }
 
-    override fun isOpen(): Boolean = listenerJob.isActive
+    override val isOpen: Boolean get() = listenerJob?.isActive == true
 
 
     override suspend fun write(data: ByteArray): Unit = withContext(Dispatchers.IO) {

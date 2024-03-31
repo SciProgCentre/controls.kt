@@ -4,7 +4,6 @@ import kotlinx.coroutines.withTimeoutOrNull
 import space.kscience.controls.ports.Ports
 import space.kscience.controls.ports.SynchronousPort
 import space.kscience.controls.ports.respondStringWithDelimiter
-import space.kscience.controls.ports.synchronous
 import space.kscience.controls.spec.*
 import space.kscience.dataforge.context.Context
 import space.kscience.dataforge.context.Factory
@@ -22,7 +21,7 @@ class MksPdr900Device(context: Context, meta: Meta) : DeviceBySpec<MksPdr900Devi
 
     private val portDelegate = lazy {
         val ports = context.request(Ports)
-        ports.buildPort(meta["port"] ?: error("Port is not defined in device configuration")).synchronous()
+        ports.buildSynchronousPort(meta["port"] ?: error("Port is not defined in device configuration"))
     }
 
     private val port: SynchronousPort by portDelegate

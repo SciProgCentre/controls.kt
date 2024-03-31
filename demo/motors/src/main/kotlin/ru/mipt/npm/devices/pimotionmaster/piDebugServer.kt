@@ -29,7 +29,7 @@ fun Context.launchPiDebugServer(port: Int, axes: List<String>): Job = launch(exc
             val output = socket.openWriteChannel()
 
             val sendJob = launch {
-                virtualDevice.receiving().collect {
+                virtualDevice.subscribe().collect {
                     //println("Sending: ${it.decodeToString()}")
                     output.writeAvailable(it)
                     output.flush()

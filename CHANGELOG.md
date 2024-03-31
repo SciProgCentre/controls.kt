@@ -8,6 +8,7 @@
 
 ### Changed
 - Constructor properties return `DeviceStat` in order to be able to subscribe to them
+- Refactored ports. Now we have `AsynchronousPort` as well as `SynchronousPort`
 
 ### Deprecated
 

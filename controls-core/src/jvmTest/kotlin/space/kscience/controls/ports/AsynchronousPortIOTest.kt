@@ -12,7 +12,7 @@ import space.kscience.dataforge.context.Global
 import kotlin.test.assertEquals
 
 
-internal class PortIOTest {
+internal class AsynchronousPortIOTest {
 
     @Test
     fun testDelimiteredByteArrayFlow() {
@@ -29,8 +29,8 @@ internal class PortIOTest {
 
     @Test
     fun testUdpCommunication() = runTest {
-        val receiver = UdpPort.openChannel(Global, "localhost", 8811, localPort = 8812)
-        val sender = UdpPort.openChannel(Global, "localhost", 8812, localPort = 8811)
+        val receiver = UdpPort.open(Global, "localhost", 8811, localPort = 8812)
+        val sender = UdpPort.open(Global, "localhost", 8812, localPort = 8811)
 
         delay(30)
         repeat(10) {
@@ -38,7 +38,7 @@ internal class PortIOTest {
         }
 
         val res = receiver
-            .receiving()
+            .subscribe()
             .withStringDelimiter("\n")
             .take(10)
             .toList()
