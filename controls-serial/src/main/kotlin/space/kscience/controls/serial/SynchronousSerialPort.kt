@@ -4,6 +4,7 @@ import com.fazecast.jSerialComm.SerialPort
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import space.kscience.controls.ports.SynchronousPort
@@ -44,26 +45,38 @@ public class SynchronousSerialPort(
 
     private val mutex = Mutex()
 
-    override suspend fun <R> respond(request: ByteArray, transform: suspend Flow<ByteArray>.() -> R): R =
-        mutex.withLock {
+    override suspend fun <R> respond(
+        request: ByteArray,
+        transform: suspend Flow<ByteArray>.() -> R,
+    ): R = mutex.withLock {
+        comPort.flushIOBuffers()
+        comPort.writeBytes(request, request.size)
+        flow<ByteArray> {
+            while (isOpen) {
+                try {
+                    val available = comPort.bytesAvailable()
+                    if (available > 0) {
+                        val buffer = ByteArray(available)
+                        comPort.readBytes(buffer, available)
+                        emit(buffer)
+                    } else if (available < 0) break
+                } catch (ex: Exception) {
+                    logger.error(ex) { "Channel read error" }
+                    delay(1000)
+                }
+            }
+        }.transform()
+    }
+
+    override suspend fun respondFixedMessageSize(request: ByteArray, responseSize: Int): ByteArray = mutex.withLock {
+        runInterruptible {
             comPort.flushIOBuffers()
             comPort.writeBytes(request, request.size)
-            flow<ByteArray> {
-                while (isOpen) {
-                    try {
-                        val available = comPort.bytesAvailable()
-                        if (available > 0) {
-                            val buffer = ByteArray(available)
-                            comPort.readBytes(buffer, available)
-                            emit(buffer)
-                        } else if (available < 0) break
-                    } catch (ex: Exception) {
-                        logger.error(ex) { "Channel read error" }
-                        delay(1000)
-                    }
-                }
-            }.transform()
+            val buffer = ByteArray(responseSize)
+            comPort.readBytes(buffer, responseSize)
+            buffer
         }
+    }
 
     public companion object : Factory<SynchronousPort> {
 

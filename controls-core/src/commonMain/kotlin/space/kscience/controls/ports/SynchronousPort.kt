@@ -2,8 +2,11 @@ package space.kscience.controls.ports
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.io.Buffer
+import kotlinx.io.readByteArray
 import space.kscience.dataforge.context.Context
 import space.kscience.dataforge.context.ContextAware
 
@@ -25,6 +28,22 @@ public interface SynchronousPort : ContextAware, AutoCloseable {
         request: ByteArray,
         transform: suspend Flow<ByteArray>.() -> R,
     ): R
+
+    /**
+     * Synchronously read fixed size response to a given [request]. Discard additional response bytes.
+     */
+    public suspend fun respondFixedMessageSize(
+        request: ByteArray,
+        responseSize: Int,
+    ): ByteArray = respond(request) {
+        val buffer = Buffer()
+        takeWhile {
+            buffer.size < responseSize
+        }.collect {
+            buffer.write(it)
+        }
+        buffer.readByteArray(responseSize)
+    }
 }
 
 private class SynchronousOverAsynchronousPort(

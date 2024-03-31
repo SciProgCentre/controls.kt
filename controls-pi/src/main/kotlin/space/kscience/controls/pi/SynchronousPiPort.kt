@@ -7,6 +7,7 @@ import com.pi4j.ktx.io.serial
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import space.kscience.controls.ports.SynchronousPort
@@ -53,6 +54,14 @@ public class SynchronousPiPort(
                 }
             }
         }.transform()
+    }
+
+    override suspend fun respondFixedMessageSize(request: ByteArray, responseSize: Int): ByteArray = mutex.withLock {
+        runInterruptible {
+            serial.drain()
+            serial.write(request)
+            serial.readNBytes(responseSize)
+        }
     }
 
     override fun close() {
