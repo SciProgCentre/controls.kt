@@ -11,14 +11,14 @@ description = """
     A plugin for Controls-kt device server on top of plc4x library
 """.trimIndent()
 
-kscience{
+kscience {
     jvm()
-    jvmMain{
+    jvmMain {
         api(projects.controlsCore)
         api("org.apache.plc4x:plc4j-spi:$plc4xVersion")
     }
 }
 
-readme{
+readme {
     maturity = Maturity.EXPERIMENTAL
 }

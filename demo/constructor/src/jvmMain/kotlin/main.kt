@@ -84,24 +84,24 @@ private fun Context.launchPidDevice(
 
     showDashboard {
         plot {
-            plotNumberState(context, state, maxAge = maxAge) {
+            plotNumberState(context, state, maxAge = maxAge, sampling = 50.milliseconds) {
                 name = "real position"
             }
-            plotDeviceProperty(device.pid, Regulator.position.name, maxAge = maxAge) {
+            plotDeviceProperty(device.pid, Regulator.position.name, maxAge = maxAge, sampling = 50.milliseconds) {
                 name = "read position"
             }
 
-            plotDeviceProperty(device.pid, Regulator.target.name, maxAge = maxAge) {
+            plotDeviceProperty(device.pid, Regulator.target.name, maxAge = maxAge, sampling = 50.milliseconds) {
                 name = "target"
             }
         }
 
         plot {
-            plotDeviceProperty(device.start, LimitSwitch.locked.name, maxAge = maxAge) {
+            plotDeviceProperty(device.start, LimitSwitch.locked.name, maxAge = maxAge, sampling = 50.milliseconds) {
                 name = "start measured"
                 mode = ScatterMode.markers
             }
-            plotDeviceProperty(device.end, LimitSwitch.locked.name, maxAge = maxAge) {
+            plotDeviceProperty(device.end, LimitSwitch.locked.name, maxAge = maxAge, sampling = 50.milliseconds) {
                 name = "end measured"
                 mode = ScatterMode.markers
             }

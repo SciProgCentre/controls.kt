@@ -8,6 +8,8 @@ import space.kscience.dataforge.meta.Meta
 
 public interface Plc4xProperty {
 
+    public val keys: Set<String>
+
     public fun PlcReadRequest.Builder.request(): PlcReadRequest.Builder
 
     public fun PlcReadResponse.readProperty(): Meta
@@ -15,17 +17,23 @@ public interface Plc4xProperty {
     public fun PlcWriteRequest.Builder.writeProperty(meta: Meta): PlcWriteRequest.Builder
 }
 
-public class DefaultPlc4xProperty(
+private class DefaultPlc4xProperty(
     private val address: String,
     private val plcValueType: PlcValueType,
     private val name: String = "@default",
 ) : Plc4xProperty {
 
+    override val keys: Set<String> = setOf(name)
+
     override fun PlcReadRequest.Builder.request(): PlcReadRequest.Builder =
         addTagAddress(name, address)
+
     override fun PlcReadResponse.readProperty(): Meta =
-        asPlcValue.toMeta()
+        getPlcValue(name).toMeta()
 
     override fun PlcWriteRequest.Builder.writeProperty(meta: Meta): PlcWriteRequest.Builder =
         addTagAddress(name, address, meta.toPlcValue(plcValueType))
 }
+
+public fun Plc4xProperty(address: String, plcValueType: PlcValueType, name: String = "@default"): Plc4xProperty =
+    DefaultPlc4xProperty(address, plcValueType, name)
