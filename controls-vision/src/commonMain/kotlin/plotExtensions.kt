@@ -205,14 +205,14 @@ private fun List<Instant>.averageTime(): Instant {
 }
 
 /**
- * Average property value by [averagingInterval]. Return [missingValue] on each sample interval if no events arrived.
+ * Average property value by [averagingInterval]. Return [startValue] on each sample interval if no events arrived.
  */
 @DFExperimental
 public fun Plot.plotAveragedDeviceProperty(
     device: Device,
     propertyName: String,
-    missingValue: Double = 0.0,
-    extractValue: Meta.() -> Double = { value?.double ?: missingValue },
+    startValue: Double = 0.0,
+    extractValue: Meta.() -> Double = { value?.double ?: startValue },
     maxAge: Duration = defaultMaxAge,
     maxPoints: Int = defaultMaxPoints,
     minPoints: Int = defaultMinPoints,
@@ -221,13 +221,15 @@ public fun Plot.plotAveragedDeviceProperty(
     configuration: Scatter.() -> Unit = {},
 ): Job = scatter(configuration).run {
     val data = TimeData()
+    var lastValue = startValue
     device.propertyMessageFlow(propertyName).chunkedByPeriod(averagingInterval).transform { eventList ->
         if (eventList.isEmpty()) {
-            data.append(Clock.System.now(), missingValue.asValue())
+            data.append(Clock.System.now(), lastValue.asValue())
         } else {
             val time = eventList.map { it.time }.averageTime()
             val value = eventList.map { extractValue(it.value) }.average()
             data.append(time, value.asValue())
+            lastValue = value
         }
         data.trim(maxAge, maxPoints, minPoints)
         emit(data)
