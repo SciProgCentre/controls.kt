@@ -3,8 +3,6 @@ plugins {
     `maven-publish`
 }
 
-val visionforgeVersion: String by rootProject.extra
-
 kscience {
     fullStack("js/controls-jupyter.js")
     useKtor()
@@ -12,7 +10,7 @@ kscience {
     jupyterLibrary("space.kscience.controls.jupyter.ControlsJupyter")
     dependencies {
         implementation(projects.controlsVision)
-        implementation("space.kscience:visionforge-jupyter:$visionforgeVersion")
+        implementation(libs.visionforge.jupiter)
     }
     jvmMain {
         implementation(spclibs.logback.classic)

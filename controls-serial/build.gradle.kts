@@ -9,7 +9,7 @@ description = "Implementation of direct serial port communication with JSerialCo
 
 dependencies{
     api(project(":controls-core"))
-    implementation("com.fazecast:jSerialComm:2.10.4")
+    implementation(libs.jSerialComm)
 }
 
 readme{

@@ -12,7 +12,7 @@ description = """
 
 dependencies {
     api(projects.controlsCore)
-    api("com.ghgande:j2mod:3.2.0")
+    api(libs.j2mod)
 }
 
 readme{

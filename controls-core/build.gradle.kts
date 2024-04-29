@@ -9,8 +9,6 @@ description = """
     Core interfaces for building a device server
 """.trimIndent()
 
-val dataforgeVersion: String by rootProject.extra
-
 kscience {
     jvm()
     js()
@@ -21,7 +19,7 @@ kscience {
     }
     useContextReceivers()
     commonMain {
-        api("space.kscience:dataforge-io:$dataforgeVersion")
+        api(libs.dataforge.io)
         api(spclibs.kotlinx.datetime)
     }
 

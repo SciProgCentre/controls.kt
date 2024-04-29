@@ -9,8 +9,6 @@ description = """
     Common utilities and services for Magix endpoints.   
 """.trimIndent()
 
-val dataforgeVersion: String by rootProject.extra
-
 kscience {
     jvm()
     js()
@@ -18,7 +16,7 @@ kscience {
     useSerialization()
     commonMain {
         api(projects.magix.magixApi)
-        api("space.kscience:dataforge-meta:$dataforgeVersion")
+        api(libs.dataforge.meta)
     }
 }
 

@@ -7,8 +7,6 @@ description = """
     Dashboard and visualization extensions for devices
 """.trimIndent()
 
-val visionforgeVersion: String by rootProject.extra
-
 kscience {
     fullStack("js/controls-vision.js")
     useKtor()
@@ -16,15 +14,15 @@ kscience {
     dependencies {
         api(projects.controlsCore)
         api(projects.controlsConstructor)
-        api("space.kscience:visionforge-plotly:$visionforgeVersion")
-        api("space.kscience:visionforge-markdown:$visionforgeVersion")
+        api(libs.visionforge.plotly)
+        api(libs.visionforge.markdown)
 //        api("space.kscience:tables-kt:0.2.1")
 //        api("space.kscience:visionforge-tables:$visionforgeVersion")
     }
 
     jvmMain{
-        api("space.kscience:visionforge-server:$visionforgeVersion")
-        api("io.ktor:ktor-server-cio")
+        api(libs.visionforge.server)
+        api(spclibs.ktor.server.cio)
     }
 }
 

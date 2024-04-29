@@ -8,16 +8,13 @@ repositories {
     maven("https://repo.kotlin.link")
 }
 
-val ktorVersion: String by rootProject.extra
-val rsocketVersion: String by rootProject.extra
-
 dependencies {
     implementation(projects.magix.magixServer)
     implementation(projects.magix.magixRsocket)
     implementation(projects.magix.magixZmq)
-    implementation("io.ktor:ktor-client-cio:$ktorVersion")
+    implementation(spclibs.ktor.client.cio)
 
-    implementation("ch.qos.logback:logback-classic:1.2.11")
+    implementation(libs.logback.classic)
 }
 kotlin{
     jvmToolchain(11)

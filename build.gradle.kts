@@ -3,13 +3,8 @@ import space.kscience.gradle.useSPCTeam
 
 plugins {
     id("space.kscience.gradle.project")
+    alias(libs.plugins.versions)
 }
-
-val dataforgeVersion: String by extra("0.8.0")
-val visionforgeVersion by extra("0.4.1")
-val ktorVersion: String by extra(space.kscience.gradle.KScienceVersions.ktorVersion)
-val rsocketVersion by extra("0.15.4")
-val xodusVersion by extra("2.0.1")
 
 allprojects {
     group = "space.kscience"
