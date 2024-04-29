@@ -10,7 +10,7 @@ fazecast = "2.10.3"
 
 tornadofx = "1.7.20"
 
-plotlykt = "0.5.3"
+plotlykt = "0.7.0"
 
 logback = "1.2.11"
 
