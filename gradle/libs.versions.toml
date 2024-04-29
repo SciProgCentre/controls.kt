@@ -20,6 +20,15 @@ rabbitmq = "5.14.2"
 
 kmongo = "4.5.1"
 
+j2mod = "3.2.1"
+
+milo = "0.6.12"
+
+pi4j = "2.3.0"
+pi4j-ktx = "2.4.0"
+
+versions = "0.51.0"
+
 [libraries]
 
 dataforge-io = { module = "space.kscience:dataforge-io", version.ref = "dataforge" }
@@ -46,4 +55,21 @@ hivemq-mqtt-client = { module = "com.hivemq:hivemq-mqtt-client", version.ref = "
 
 rabbitmq-amqp-client = { module = "com.rabbitmq:amqp-client", version.ref = "rabbitmq" }
 
+j2mod = { module = "com.ghgande:j2mod", version.ref = "j2mod" }
+
 kmongo-coroutine-serialization = { module = "org.litote.kmongo:kmongo-coroutine-serialization", version.ref = "kmongo" }
+
+milo-client = { module = "org.eclipse.milo:sdk-client", version.ref = "milo" }
+milo-parser = { module = "org.eclipse.milo:bsd-parser", version.ref = "milo" }
+milo-server = { module = "org.eclipse.milo:sdk-server", version.ref = "milo" }
+
+pi4j-ktx = { module = "com.pi4j:pi4j-ktx", version.ref = "pi4j-ktx" }
+pi4j-core = { module = "com.pi4j:pi4j-core", version.ref = "pi4j" }
+pi4j-plugin-raspberrypi = { module = "com.pi4j:pi4j-plugin-raspberrypi", version.ref = "pi4j" }
+pi4j-plugin-pigpio = { module = "com.pi4j:pi4j-plugin-pigpio", version.ref = "pi4j" }
+
+# Buildscript
+
+[plugins]
+
+versions = { id = "com.github.ben-manes.versions", version.ref = "versions" }

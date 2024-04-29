@@ -4,6 +4,7 @@ import space.kscience.gradle.useSPCTeam
 
 plugins {
     id("space.kscience.gradle.project")
+    alias(libs.plugins.versions)
 }
 
 allprojects {
