@@ -1,6 +1,6 @@
 [versions]
 
-dataforge = "0.6.2-dev-3"
+dataforge = "0.8.0"
 rsocket = "0.15.4"
 xodus = "2.0.1"
 
@@ -27,11 +27,16 @@ milo = "0.6.12"
 pi4j = "2.3.0"
 pi4j-ktx = "2.4.0"
 
+plc4j = "0.12.0"
+
+visionforge = "0.4.1"
+
 versions = "0.51.0"
 
 [libraries]
 
 dataforge-io = { module = "space.kscience:dataforge-io", version.ref = "dataforge" }
+dataforge-meta = { module = "space.kscience:dataforge-meta", version.ref = "dataforge" }
 
 uuid = { module = "com.benasher44:uuid", version.ref = "uuid" }
 
@@ -67,6 +72,13 @@ pi4j-ktx = { module = "com.pi4j:pi4j-ktx", version.ref = "pi4j-ktx" }
 pi4j-core = { module = "com.pi4j:pi4j-core", version.ref = "pi4j" }
 pi4j-plugin-raspberrypi = { module = "com.pi4j:pi4j-plugin-raspberrypi", version.ref = "pi4j" }
 pi4j-plugin-pigpio = { module = "com.pi4j:pi4j-plugin-pigpio", version.ref = "pi4j" }
+
+plc4j-spi = { module = "org.apache.plc4x:plc4j-spi", version.ref = "plc4j" }
+
+visionforge-jupiter = { module = "space.kscience:visionforge-jupyter", version.ref = "visionforge" }
+visionforge-plotly = { module = "space.kscience:visionforge-plotly", version.ref = "visionforge" }
+visionforge-markdown = { module = "space.kscience:visionforge-markdown", version.ref = "visionforge" }
+visionforge-server = { module = "space.kscience:visionforge-server", version.ref = "visionforge" }
 
 # Buildscript
 

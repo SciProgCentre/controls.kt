@@ -9,16 +9,20 @@ description = """
    A combined Magix event loop server with web server for visualization.
 """.trimIndent()
 
-dependencies {
-    implementation(projects.controlsCore)
-    implementation(projects.controlsPortsKtor)
-    implementation(projects.magix.magixServer)
-    implementation(spclibs.ktor.server.cio)
-    implementation(spclibs.ktor.server.websockets)
-    implementation(spclibs.ktor.server.content.negotiation)
-    implementation(spclibs.ktor.serialization.kotlinx.json)
-    implementation(spclibs.ktor.server.html.builder)
-    implementation(spclibs.ktor.server.status.pages)
+
+kscience {
+    jvm()
+    dependencies {
+        implementation(projects.controlsCore)
+        implementation(projects.controlsPortsKtor)
+        implementation(projects.magix.magixServer)
+        implementation(spclibs.ktor.server.cio)
+        implementation(spclibs.ktor.server.websockets)
+        implementation(spclibs.ktor.server.content.negotiation)
+        implementation(spclibs.ktor.serialization.kotlinx.json)
+        implementation(spclibs.ktor.server.html.builder)
+        implementation(spclibs.ktor.server.status.pages)
+    }
 }
 
 readme{
