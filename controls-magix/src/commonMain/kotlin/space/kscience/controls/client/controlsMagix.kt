@@ -12,6 +12,8 @@ import space.kscience.controls.manager.respondHubMessage
 import space.kscience.dataforge.context.error
 import space.kscience.dataforge.context.logger
 import space.kscience.magix.api.*
+import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 
 
 internal val controlsMagixFormat: MagixFormat<DeviceMessage> = MagixFormat(
@@ -32,17 +34,20 @@ internal fun generateId(request: MagixMessage): String = if (request.id != null)
 
 /**
  * Communicate with server in [Magix format](https://github.com/waltz-controls/rfc/tree/master/1)
+ *
+ * Accepts messages with target that equals [endpointID] or null (broadcast messages)
  */
 public fun DeviceManager.launchMagixService(
     endpoint: MagixEndpoint,
     endpointID: String = controlsMagixFormat.defaultFormat,
-): Job = context.launch {
-    endpoint.subscribe(controlsMagixFormat, targetFilter = listOf(endpointID)).onEach { (request, payload) ->
+    coroutineContext: CoroutineContext = EmptyCoroutineContext,
+): Job = context.launch(coroutineContext) {
+    endpoint.subscribe(controlsMagixFormat, targetFilter = listOf(endpointID, null)).onEach { (request, payload) ->
         val responsePayload = respondHubMessage(payload)
-        if (responsePayload != null) {
+        responsePayload.forEach {
             endpoint.send(
                 format = controlsMagixFormat,
-                payload = responsePayload,
+                payload = it,
                 source = endpointID,
                 target = request.sourceEndpoint,
                 id = generateId(request),
@@ -53,7 +58,7 @@ public fun DeviceManager.launchMagixService(
         logger.error(error) { "Error while responding to message: ${error.message}" }
     }.launchIn(this)
 
-    hubMessageFlow(this).onEach { payload ->
+    hubMessageFlow().onEach { payload ->
         endpoint.send(
             format = controlsMagixFormat,
             payload = payload,

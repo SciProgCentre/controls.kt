@@ -20,9 +20,13 @@ kscience {
         json()
     }
     useContextReceivers()
-    dependencies {
+    commonMain {
         api(libs.dataforge.io)
         api(spclibs.kotlinx.datetime)
+    }
+
+    jvmTest{
+        implementation(spclibs.logback.classic)
     }
 }
 

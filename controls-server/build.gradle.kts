@@ -1,7 +1,7 @@
 import space.kscience.gradle.Maturity
 
 plugins {
-    id("space.kscience.gradle.jvm")
+    id("space.kscience.gradle.mpp")
     `maven-publish`
 }
 

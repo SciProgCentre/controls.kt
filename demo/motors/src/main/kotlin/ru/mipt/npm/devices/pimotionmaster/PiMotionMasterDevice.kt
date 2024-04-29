@@ -16,11 +16,7 @@ import space.kscience.controls.api.PropertyDescriptor
 import space.kscience.controls.ports.*
 import space.kscience.controls.spec.*
 import space.kscience.dataforge.context.*
-import space.kscience.dataforge.meta.Meta
-import space.kscience.dataforge.meta.asValue
-import space.kscience.dataforge.meta.double
-import space.kscience.dataforge.meta.get
-import space.kscience.dataforge.meta.transformations.MetaConverter
+import space.kscience.dataforge.meta.*
 import space.kscience.dataforge.names.NameToken
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -29,10 +25,10 @@ import kotlin.time.Duration.Companion.milliseconds
 
 class PiMotionMasterDevice(
     context: Context,
-    private val portFactory: PortFactory = KtorTcpPort,
+    private val portFactory: Factory<AsynchronousPort> = KtorTcpPort,
 ) : DeviceBySpec<PiMotionMasterDevice>(PiMotionMasterDevice, context), DeviceHub {
 
-    private var port: Port? = null
+    private var port: AsynchronousPort? = null
     //TODO make proxy work
     //PortProxy { portFactory(address ?: error("The device is not connected"), context) }
 
@@ -87,7 +83,7 @@ class PiMotionMasterDevice(
     suspend fun getErrorCode(): Int = mutex.withLock {
         withTimeout(timeoutValue) {
             sendCommandInternal("ERR?")
-            val errorString = port?.receiving()?.withStringDelimiter("\n")?.first() ?: error("Not connected to device")
+            val errorString = port?.subscribe()?.withStringDelimiter("\n")?.first() ?: error("Not connected to device")
             errorString.trim().toInt()
         }
     }
@@ -100,7 +96,7 @@ class PiMotionMasterDevice(
         try {
             withTimeout(timeoutValue) {
                 sendCommandInternal(command, *arguments)
-                val phrases = port?.receiving()?.withStringDelimiter("\n") ?: error("Not connected to device")
+                val phrases = port?.subscribe()?.withStringDelimiter("\n") ?: error("Not connected to device")
                 phrases.transformWhile { line ->
                     emit(line)
                     line.endsWith(" \n")
@@ -138,7 +134,7 @@ class PiMotionMasterDevice(
         override fun build(context: Context, meta: Meta): PiMotionMasterDevice = PiMotionMasterDevice(context)
 
         val connected by booleanProperty(descriptorBuilder = {
-            info = "True if the connection address is defined and the device is initialized"
+            description = "True if the connection address is defined and the device is initialized"
         }) {
             port != null
         }
@@ -157,13 +153,13 @@ class PiMotionMasterDevice(
         }
 
         val stop by unitAction({
-            info = "Stop all axis"
+            description = "Stop all axis"
         }) {
             send("STP")
         }
 
         val connect by action(MetaConverter.meta, MetaConverter.unit, descriptorBuilder = {
-            info = "Connect to specific port and initialize axis"
+            description = "Connect to specific port and initialize axis"
         }) { portSpec ->
             //Clear current actions if present
             if (port != null) {
@@ -172,7 +168,7 @@ class PiMotionMasterDevice(
             //Update port
             //address = portSpec.node
             port = portFactory(portSpec, context)
-            updateLogical(connected, true)
+            propertyChanged(connected, true)
 //        connector.open()
             //Initialize axes
             val idn = read(identity)
@@ -189,19 +185,19 @@ class PiMotionMasterDevice(
         }
 
         val disconnect by unitAction({
-            info = "Disconnect the program from the device if it is connected"
+            description = "Disconnect the program from the device if it is connected"
         }) {
             port?.let {
                 execute(stop)
                 it.close()
             }
             port = null
-            updateLogical(connected, false)
+            propertyChanged(connected, false)
         }
 
 
         val timeout by mutableProperty(MetaConverter.duration, PiMotionMasterDevice::timeoutValue) {
-            info = "Timeout"
+            description = "Timeout"
         }
     }
 
@@ -245,8 +241,8 @@ class PiMotionMasterDevice(
                 read = {
                     readAxisBoolean("$command?")
                 },
-                write = {
-                    writeAxisBoolean(command, it)
+                write = { _, value ->
+                    writeAxisBoolean(command, value)
                 },
                 descriptorBuilder = descriptorBuilder
             )
@@ -259,7 +255,7 @@ class PiMotionMasterDevice(
                     mm.requestAndParse("$command?", axisId)[axisId]?.toDoubleOrNull()
                         ?: error("Malformed $command response. Should include float value for $axisId")
                 },
-                write = { newValue ->
+                write = { _, newValue ->
                     mm.send(command, axisId, newValue.toString())
                     mm.failIfError()
                 },
@@ -267,7 +263,7 @@ class PiMotionMasterDevice(
             )
 
             val enabled by axisBooleanProperty("EAX") {
-                info = "Motor enable state."
+                description = "Motor enable state."
             }
 
             val halt by unitAction {
@@ -275,20 +271,20 @@ class PiMotionMasterDevice(
             }
 
             val targetPosition by axisNumberProperty("MOV") {
-                info = """
+                description = """
                 Sets a new absolute target position for the specified axis.
                 Servo mode must be switched on for the commanded axis prior to using this command (closed-loop operation).
             """.trimIndent()
             }
 
             val onTarget by booleanProperty({
-                info = "Queries the on-target state of the specified axis."
+                description = "Queries the on-target state of the specified axis."
             }) {
                 readAxisBoolean("ONT?")
             }
 
             val reference by booleanProperty({
-                info = "Get Referencing Result"
+                description = "Get Referencing Result"
             }) {
                 readAxisBoolean("FRF?")
             }
@@ -298,36 +294,36 @@ class PiMotionMasterDevice(
             }
 
             val minPosition by doubleProperty({
-                info = "Minimal position value for the axis"
+                description = "Minimal position value for the axis"
             }) {
                 mm.requestAndParse("TMN?", axisId)[axisId]?.toDoubleOrNull()
                     ?: error("Malformed `TMN?` response. Should include float value for $axisId")
             }
 
             val maxPosition by doubleProperty({
-                info = "Maximal position value for the axis"
+                description = "Maximal position value for the axis"
             }) {
                 mm.requestAndParse("TMX?", axisId)[axisId]?.toDoubleOrNull()
                     ?: error("Malformed `TMX?` response. Should include float value for $axisId")
             }
 
             val position by doubleProperty({
-                info = "The current axis position."
+                description = "The current axis position."
             }) {
                 mm.requestAndParse("POS?", axisId)[axisId]?.toDoubleOrNull()
                     ?: error("Malformed `POS?` response. Should include float value for $axisId")
             }
 
             val openLoopTarget by axisNumberProperty("OMA") {
-                info = "Position for open-loop operation."
+                description = "Position for open-loop operation."
             }
 
             val closedLoop by axisBooleanProperty("SVO") {
-                info = "Servo closed loop mode"
+                description = "Servo closed loop mode"
             }
 
             val velocity by axisNumberProperty("VEL") {
-                info = "Velocity value for closed-loop operation"
+                description = "Velocity value for closed-loop operation"
             }
 
             val move by action(MetaConverter.meta, MetaConverter.unit) {

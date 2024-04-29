@@ -60,11 +60,16 @@ include(
     ":controls-server",
     ":controls-opcua",
     ":controls-modbus",
+    ":controls-plc4x",
 //    ":controls-mongo",
     ":controls-storage",
     ":controls-storage:controls-xodus",
+    ":controls-constructor",
+    ":controls-vision",
+    ":controls-jupyter",
     ":magix",
     ":magix:magix-api",
+    ":magix:magix-utils",
     ":magix:magix-server",
     ":magix:magix-rsocket",
     ":magix:magix-java-endpoint",
@@ -80,5 +85,6 @@ include(
     ":demo:car",
     ":demo:motors",
     ":demo:echo",
-    ":demo:mks-pdr900"
+    ":demo:mks-pdr900",
+    ":demo:constructor"
 )
