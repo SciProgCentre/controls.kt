@@ -24,7 +24,7 @@ public open class ModbusDeviceBySpec<D: Device>(
         master.connect()
     }
 
-    override fun onStop() {
+    override suspend fun onStop() {
         if(disposeMasterOnClose){
             master.disconnect()
         }

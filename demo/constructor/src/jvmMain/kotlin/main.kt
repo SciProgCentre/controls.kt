@@ -16,9 +16,11 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import kotlinx.coroutines.launch
 import space.kscience.controls.constructor.*
+import space.kscience.controls.constructor.library.*
 import space.kscience.controls.manager.ClockManager
 import space.kscience.controls.manager.DeviceManager
 import space.kscience.controls.manager.clock
+import space.kscience.controls.manager.install
 import space.kscience.controls.spec.doRecurring
 import space.kscience.controls.spec.name
 import space.kscience.controls.vision.plot
@@ -48,13 +50,14 @@ class LinearDrive(
     val drive by device(VirtualDrive.factory(mass, state))
     val pid by device(PidRegulator(drive, pidParameters))
 
-    val start by device(LimitSwitch.factory(state.atStartState))
-    val end by device(LimitSwitch.factory(state.atEndState))
+    val start by device(LimitSwitch(state.atStartState))
+    val end by device(LimitSwitch(state.atEndState))
 
 
     val positionState: DoubleRangeState by property(state)
-    private val targetState: MutableDeviceState<Double> by property(pid.mutablePropertyAsState(Regulator.target, 0.0))
-    var target by targetState
+
+    private val targetState: MutableDeviceState<Double> by deviceProperty(pid, Regulator.target, 0.0)
+    var target: Double by targetState
 }
 
 
@@ -73,7 +76,6 @@ private fun Context.launchPidDevice(
             val timeFromStart = clock.now() - clockStart
             val t = timeFromStart.toDouble(DurationUnit.SECONDS)
             val freq = 0.1
-
             target = 5 * sin(2.0 * PI * freq * t) +
                     sin(2 * PI * 21 * freq * t + 0.02 * (timeFromStart / pidParameters.timeStep))
         }
@@ -150,7 +152,7 @@ fun main() = application {
                 Row {
                     Text("kp:", Modifier.align(Alignment.CenterVertically).width(50.dp).padding(5.dp))
                     TextField(
-                        String.format("%.2f",pidParameters.kp),
+                        String.format("%.2f", pidParameters.kp),
                         { pidParameters.kp = it.toDouble() },
                         Modifier.width(100.dp),
                         enabled = false
@@ -165,7 +167,7 @@ fun main() = application {
                 Row {
                     Text("ki:", Modifier.align(Alignment.CenterVertically).width(50.dp).padding(5.dp))
                     TextField(
-                        String.format("%.2f",pidParameters.ki),
+                        String.format("%.2f", pidParameters.ki),
                         { pidParameters.ki = it.toDouble() },
                         Modifier.width(100.dp),
                         enabled = false
@@ -181,7 +183,7 @@ fun main() = application {
                 Row {
                     Text("kd:", Modifier.align(Alignment.CenterVertically).width(50.dp).padding(5.dp))
                     TextField(
-                        String.format("%.2f",pidParameters.kd),
+                        String.format("%.2f", pidParameters.kd),
                         { pidParameters.kd = it.toDouble() },
                         Modifier.width(100.dp),
                         enabled = false

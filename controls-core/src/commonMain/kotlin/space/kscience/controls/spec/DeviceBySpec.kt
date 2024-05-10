@@ -20,7 +20,7 @@ public open class DeviceBySpec<D : Device>(
         self.onOpen()
     }
 
-    override fun onStop(): Unit = with(spec){
+    override suspend fun onStop(): Unit = with(spec){
         self.onClose()
     }
 

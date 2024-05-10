@@ -1,8 +1,9 @@
-package space.kscience.controls.constructor
+package space.kscience.controls.constructor.library
 
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import space.kscience.controls.api.Device
+import space.kscience.controls.constructor.DeviceState
 import space.kscience.controls.spec.DeviceBySpec
 import space.kscience.controls.spec.DevicePropertySpec
 import space.kscience.controls.spec.DeviceSpec
@@ -20,7 +21,7 @@ public interface LimitSwitch : Device {
 
     public companion object : DeviceSpec<LimitSwitch>() {
         public val locked: DevicePropertySpec<LimitSwitch, Boolean> by booleanProperty { locked }
-        public fun factory(lockedState: DeviceState<Boolean>): Factory<LimitSwitch> = Factory { context, _ ->
+        public operator fun invoke(lockedState: DeviceState<Boolean>): Factory<LimitSwitch> = Factory { context, _ ->
             VirtualLimitSwitch(context, lockedState)
         }
     }

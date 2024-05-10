@@ -1,35 +1,37 @@
 import space.kscience.gradle.Maturity
 
 plugins {
-    id("space.kscience.gradle.jvm")
+    id("space.kscience.gradle.mpp")
     `maven-publish`
-    application
 }
 
 description = """
     A magix event loop implementation in Kotlin. Includes HTTP/SSE and RSocket routes.
 """.trimIndent()
 
-kscience {
-    useSerialization{
-        json()
-    }
-}
-
 val dataforgeVersion: String by rootProject.extra
 val ktorVersion: String  = space.kscience.gradle.KScienceVersions.ktorVersion
 
-dependencies{
-    api(projects.magix.magixApi)
-    api("io.ktor:ktor-server-cio:$ktorVersion")
-    api("io.ktor:ktor-server-websockets:$ktorVersion")
-    api("io.ktor:ktor-server-content-negotiation:$ktorVersion")
-    api("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
-    api("io.ktor:ktor-server-html-builder:$ktorVersion")
+kscience {
+    jvm()
+    useSerialization{
+        json()
+    }
 
-    api(libs.rsocket.ktor.server)
-    api(libs.rsocket.transport.ktor.tcp)
+    jvmMain{
+        api(projects.magix.magixApi)
+        api("io.ktor:ktor-server-cio:$ktorVersion")
+        api("io.ktor:ktor-server-websockets:$ktorVersion")
+        api("io.ktor:ktor-server-content-negotiation:$ktorVersion")
+        api("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
+        api("io.ktor:ktor-server-html-builder:$ktorVersion")
+
+        api(libs.rsocket.ktor.server)
+        api(libs.rsocket.transport.ktor.tcp)
+    }
+
 }
+
 
 readme{
     maturity = Maturity.EXPERIMENTAL

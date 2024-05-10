@@ -38,6 +38,10 @@ public class DoubleRangeState(
      * A state showing that the range is on its higher boundary
      */
     public val atEndState: DeviceState<Boolean> = map(MetaConverter.boolean) { it >= range.endInclusive }
+
+    override fun toString(): String = "DoubleRangeState(range=$range, converter=$converter)"
+
+
 }
 
 @Suppress("UnusedReceiverParameter")

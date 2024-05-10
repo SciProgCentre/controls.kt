@@ -8,6 +8,7 @@ import javafx.stage.Stage
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.eclipse.milo.opcua.sdk.server.OpcUaServer
 import org.eclipse.milo.opcua.stack.core.types.builtin.LocalizedText
@@ -91,7 +92,7 @@ class DemoController : Controller(), ContextAware {
         }
     }
 
-    fun shutdown() {
+    suspend fun shutdown() {
         logger.info { "Shutting down..." }
         opcUaServer.shutdown()
         logger.info { "OpcUa server stopped" }
@@ -179,7 +180,9 @@ class DemoControllerApp : App(DemoControllerView::class) {
     }
 
     override fun stop() {
-        controller.shutdown()
+        runBlocking {
+            controller.shutdown()
+        }
         super.stop()
     }
 }

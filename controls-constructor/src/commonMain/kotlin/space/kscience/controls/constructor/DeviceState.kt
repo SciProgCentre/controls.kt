@@ -2,18 +2,13 @@ package space.kscience.controls.constructor
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import space.kscience.controls.api.Device
-import space.kscience.controls.api.PropertyChangedMessage
-import space.kscience.controls.spec.DevicePropertySpec
-import space.kscience.controls.spec.MutableDevicePropertySpec
-import space.kscience.controls.spec.name
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import space.kscience.dataforge.meta.Meta
 import space.kscience.dataforge.meta.MetaConverter
 import kotlin.reflect.KProperty
-import kotlin.time.Duration
 
 /**
  * An observable state of a device
@@ -23,6 +18,8 @@ public interface DeviceState<T> {
     public val value: T
 
     public val valueFlow: Flow<T>
+
+    override fun toString(): String
 
     public companion object
 }
@@ -36,7 +33,7 @@ public operator fun <T> DeviceState<T>.getValue(thisRef: Any?, property: KProper
 /**
  * Collect values in a given [scope]
  */
-public fun <T> DeviceState<T>.collectValuesIn(scope: CoroutineScope, block: suspend (T)->Unit): Job =
+public fun <T> DeviceState<T>.collectValuesIn(scope: CoroutineScope, block: suspend (T) -> Unit): Job =
     valueFlow.onEach(block).launchIn(scope)
 
 /**
@@ -57,186 +54,46 @@ public var <T> MutableDeviceState<T>.valueAsMeta: Meta
     }
 
 /**
- * A [MutableDeviceState] that does not correspond to a physical state
- *
- * @param callback a synchronous callback that could be used without a scope
+ * Device state with a value that depends on other device states
  */
-private class VirtualDeviceState<T>(
-    override val converter: MetaConverter<T>,
-    initialValue: T,
-    private val callback: (T) -> Unit = {},
-) : MutableDeviceState<T> {
-    private val flow = MutableStateFlow(initialValue)
-    override val valueFlow: Flow<T> get() = flow
-
-    override var value: T
-        get() = flow.value
-        set(value) {
-            flow.value = value
-            callback(value)
-        }
-}
-
-
-/**
- * A [MutableDeviceState] that does not correspond to a physical state
- *
- * @param callback a synchronous callback that could be used without a scope
- */
-public fun <T> DeviceState.Companion.virtual(
-    converter: MetaConverter<T>,
-    initialValue: T,
-    callback: (T) -> Unit = {},
-): MutableDeviceState<T> = VirtualDeviceState(converter, initialValue, callback)
-
-private class StateFlowAsState<T>(
-    override val converter: MetaConverter<T>,
-    val flow: MutableStateFlow<T>,
-) : MutableDeviceState<T> {
-    override var value: T by flow::value
-    override val valueFlow: Flow<T> get() = flow
-}
-
-public fun <T> MutableStateFlow<T>.asDeviceState(converter: MetaConverter<T>): DeviceState<T> =
-    StateFlowAsState(converter, this)
-
-
-private open class BoundDeviceState<T>(
-    override val converter: MetaConverter<T>,
-    val device: Device,
-    val propertyName: String,
-    initialValue: T,
-) : DeviceState<T> {
-
-    override val valueFlow: StateFlow<T> = device.messageFlow.filterIsInstance<PropertyChangedMessage>().filter {
-        it.property == propertyName
-    }.mapNotNull {
-        converter.read(it.value)
-    }.stateIn(device.context, SharingStarted.Eagerly, initialValue)
-
-    override val value: T get() = valueFlow.value
+public interface DeviceStateWithDependencies<T> : DeviceState<T> {
+    public val dependencies: Collection<DeviceState<*>>
 }
 
 /**
- * Bind a read-only [DeviceState] to a [Device] property
+ * Create a new read-only [DeviceState] that mirrors receiver state by mapping the value with [mapper].
  */
-public suspend fun <T> Device.propertyAsState(
-    propertyName: String,
-    metaConverter: MetaConverter<T>,
-): DeviceState<T> {
-    val initialValue = metaConverter.readOrNull(readProperty(propertyName)) ?: error("Conversion of property failed")
-    return BoundDeviceState(metaConverter, this, propertyName, initialValue)
-}
-
-public suspend fun <D : Device, T> D.propertyAsState(
-    propertySpec: DevicePropertySpec<D, T>,
-): DeviceState<T> = propertyAsState(propertySpec.name, propertySpec.converter)
-
 public fun <T, R> DeviceState<T>.map(
     converter: MetaConverter<R>, mapper: (T) -> R,
-): DeviceState<R> = object : DeviceState<R> {
+): DeviceStateWithDependencies<R> = object : DeviceStateWithDependencies<R> {
+    override val dependencies = listOf(this)
+
     override val converter: MetaConverter<R> = converter
+
     override val value: R
         get() = mapper(this@map.value)
 
     override val valueFlow: Flow<R> = this@map.valueFlow.map(mapper)
-}
 
-private class MutableBoundDeviceState<T>(
-    converter: MetaConverter<T>,
-    device: Device,
-    propertyName: String,
-    initialValue: T,
-) : BoundDeviceState<T>(converter, device, propertyName, initialValue), MutableDeviceState<T> {
-
-    override var value: T
-        get() = valueFlow.value
-        set(newValue) {
-            device.launch {
-                device.writeProperty(propertyName, converter.convert(newValue))
-            }
-        }
-}
-
-public fun <T> Device.mutablePropertyAsState(
-    propertyName: String,
-    metaConverter: MetaConverter<T>,
-    initialValue: T,
-): MutableDeviceState<T> = MutableBoundDeviceState(metaConverter, this, propertyName, initialValue)
-
-public suspend fun <T> Device.mutablePropertyAsState(
-    propertyName: String,
-    metaConverter: MetaConverter<T>,
-): MutableDeviceState<T> {
-    val initialValue = metaConverter.readOrNull(readProperty(propertyName)) ?: error("Conversion of property failed")
-    return mutablePropertyAsState(propertyName, metaConverter, initialValue)
-}
-
-public suspend fun <D : Device, T> D.mutablePropertyAsState(
-    propertySpec: MutableDevicePropertySpec<D, T>,
-): MutableDeviceState<T> = mutablePropertyAsState(propertySpec.name, propertySpec.converter)
-
-public fun <D : Device, T> D.mutablePropertyAsState(
-    propertySpec: MutableDevicePropertySpec<D, T>,
-    initialValue: T,
-): MutableDeviceState<T> = mutablePropertyAsState(propertySpec.name, propertySpec.converter, initialValue)
-
-
-private open class ExternalState<T>(
-    val scope: CoroutineScope,
-    override val converter: MetaConverter<T>,
-    val readInterval: Duration,
-    initialValue: T,
-    val reader: suspend () -> T,
-) : DeviceState<T> {
-
-    protected val flow: StateFlow<T> = flow {
-        while (true) {
-            delay(readInterval)
-            emit(reader())
-        }
-    }.stateIn(scope, SharingStarted.Eagerly, initialValue)
-
-    override val value: T get() = flow.value
-    override val valueFlow: Flow<T> get() = flow
+    override fun toString(): String = "DeviceState.map(arg=${this@map}, converter=$converter)"
 }
 
 /**
- * Create a [DeviceState] which is constructed by periodically reading external value
+ * Combine two device states into one read-only [DeviceState]. Only the latest value of each state is used.
  */
-public fun <T> DeviceState.Companion.external(
-    scope: CoroutineScope,
-    converter: MetaConverter<T>,
-    readInterval: Duration,
-    initialValue: T,
-    reader: suspend () -> T,
-): DeviceState<T> = ExternalState(scope, converter, readInterval, initialValue, reader)
+public fun <T1, T2, R> combine(
+    state1: DeviceState<T1>,
+    state2: DeviceState<T2>,
+    converter: MetaConverter<R>,
+    mapper: (T1, T2) -> R,
+): DeviceStateWithDependencies<R> = object : DeviceStateWithDependencies<R> {
+    override val dependencies = listOf(state1, state2)
 
-private class MutableExternalState<T>(
-    scope: CoroutineScope,
-    converter: MetaConverter<T>,
-    readInterval: Duration,
-    initialValue: T,
-    reader: suspend () -> T,
-    val writer: suspend (T) -> Unit,
-) : ExternalState<T>(scope, converter, readInterval, initialValue, reader), MutableDeviceState<T> {
-    override var value: T
-        get() = super.value
-        set(value) {
-            scope.launch {
-                writer(value)
-            }
-        }
+    override val converter: MetaConverter<R> = converter
+
+    override val value: R get() = mapper(state1.value, state2.value)
+
+    override val valueFlow: Flow<R> = kotlinx.coroutines.flow.combine(state1.valueFlow, state2.valueFlow, mapper)
+
+    override fun toString(): String = "DeviceState.combine(state1=$state1, state2=$state2)"
 }
-
-/**
- * Create a [DeviceState] that regularly reads and caches an external value
- */
-public fun <T> DeviceState.Companion.external(
-    scope: CoroutineScope,
-    converter: MetaConverter<T>,
-    readInterval: Duration,
-    initialValue: T,
-    reader: suspend () -> T,
-    writer: suspend (T) -> Unit,
-): MutableDeviceState<T> = MutableExternalState(scope, converter, readInterval, initialValue, reader, writer)

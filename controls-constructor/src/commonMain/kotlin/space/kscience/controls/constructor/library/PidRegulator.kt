@@ -1,4 +1,4 @@
-package space.kscience.controls.constructor
+package space.kscience.controls.constructor.library
 
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -7,8 +7,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Instant
+import space.kscience.controls.constructor.DeviceGroup
+import space.kscience.controls.constructor.install
 import space.kscience.controls.manager.clock
 import space.kscience.controls.spec.DeviceBySpec
+import space.kscience.controls.spec.write
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
@@ -71,15 +74,17 @@ public class PidRegulator(
                     lastTime = realTime
                     lastPosition = drive.position
 
-                    drive.force = pidParameters.kp * delta + pidParameters.ki * integral + pidParameters.kd * derivative
+                    drive.write(Drive.force,pidParameters.kp * delta + pidParameters.ki * integral + pidParameters.kd * derivative)
+                    //drive.force = pidParameters.kp * delta + pidParameters.ki * integral + pidParameters.kd * derivative
                     propertyChanged(Regulator.position, drive.position)
                 }
             }
         }
     }
 
-    override fun onStop() {
+    override suspend fun onStop() {
         updateJob?.cancel()
+        drive.stop()
     }
 
     override val position: Double get() = drive.position

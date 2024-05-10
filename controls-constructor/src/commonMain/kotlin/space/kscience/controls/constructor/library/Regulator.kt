@@ -1,4 +1,4 @@
-package space.kscience.controls.constructor
+package space.kscience.controls.constructor.library
 
 import space.kscience.controls.api.Device
 import space.kscience.controls.spec.*

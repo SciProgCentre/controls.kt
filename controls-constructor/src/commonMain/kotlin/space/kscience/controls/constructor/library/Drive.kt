@@ -1,10 +1,12 @@
-package space.kscience.controls.constructor
+package space.kscience.controls.constructor.library
 
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import space.kscience.controls.api.Device
+import space.kscience.controls.constructor.MutableDeviceState
+import space.kscience.controls.constructor.mutablePropertyAsState
 import space.kscience.controls.manager.clock
 import space.kscience.controls.spec.*
 import space.kscience.dataforge.context.Context
@@ -49,7 +51,7 @@ public class VirtualDrive(
     public val positionState: MutableDeviceState<Double>,
 ) : Drive, DeviceBySpec<Drive>(Drive, context) {
 
-    private val dt = meta["time.step"].double?.milliseconds ?: 1.milliseconds
+    private val dt = meta["time.step"].double?.milliseconds ?: 5.milliseconds
     private val clock = context.clock
 
     override var force: Double = 0.0
@@ -82,7 +84,7 @@ public class VirtualDrive(
         }
     }
 
-    override fun onStop() {
+    override suspend fun onStop() {
         updateJob?.cancel()
     }
 

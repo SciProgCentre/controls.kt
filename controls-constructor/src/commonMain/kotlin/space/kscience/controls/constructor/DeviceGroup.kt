@@ -9,9 +9,7 @@ import space.kscience.controls.api.*
 import space.kscience.controls.api.DeviceLifecycleState.*
 import space.kscience.controls.manager.DeviceManager
 import space.kscience.controls.manager.install
-import space.kscience.dataforge.context.Context
-import space.kscience.dataforge.context.Factory
-import space.kscience.dataforge.context.request
+import space.kscience.dataforge.context.*
 import space.kscience.dataforge.meta.*
 import space.kscience.dataforge.misc.DFExperimental
 import space.kscience.dataforge.names.*
@@ -57,6 +55,7 @@ public open class DeviceGroup(
                             )
                         )
                     }
+                    logger.error(throwable) { "Exception in device $id" }
                 }
     )
 
@@ -69,7 +68,7 @@ public open class DeviceGroup(
      * Register and initialize (synchronize child's lifecycle state with group state) a new device in this group
      */
     @OptIn(DFExperimental::class)
-    public fun <D : Device> install(token: NameToken, device: D): D {
+    public open fun <D : Device> install(token: NameToken, device: D): D {
         require(_devices[token] == null) { "A child device with name $token already exists" }
         //start the child device if needed
         if (lifecycleState == STARTED || lifecycleState == STARTING) launch { device.start() }
@@ -82,7 +81,7 @@ public open class DeviceGroup(
     /**
      * Register a new property based on [DeviceState]. Properties could be modified dynamically
      */
-    public fun registerProperty(descriptor: PropertyDescriptor, state: DeviceState<*>) {
+    public open fun registerProperty(descriptor: PropertyDescriptor, state: DeviceState<*>) {
         val name = descriptor.name.parseAsName()
         require(properties[name] == null) { "Can't add property with name $name. It already exists." }
         properties[name] = Property(state, descriptor)
@@ -126,37 +125,33 @@ public open class DeviceGroup(
         return action.invoke(argument)
     }
 
-    @DFExperimental
-    override var lifecycleState: DeviceLifecycleState = STOPPED
-        protected set(value) {
-            if (field != value) {
-                launch {
-                    sharedMessageFlow.emit(
-                        DeviceLifeCycleMessage(value)
-                    )
-                }
-            }
-            field = value
-        }
+    final override var lifecycleState: DeviceLifecycleState = DeviceLifecycleState.STOPPED
+        private set
 
 
-    @OptIn(DFExperimental::class)
+    private suspend fun setLifecycleState(lifecycleState: DeviceLifecycleState) {
+        this.lifecycleState = lifecycleState
+        sharedMessageFlow.emit(
+            DeviceLifeCycleMessage(lifecycleState)
+        )
+    }
+
+
     override suspend fun start() {
-        lifecycleState = STARTING
+        setLifecycleState(STARTING)
         super.start()
         devices.values.forEach {
             it.start()
         }
-        lifecycleState = STARTED
+        setLifecycleState(STARTED)
     }
 
-    @OptIn(DFExperimental::class)
-    override fun stop() {
+    override suspend fun stop() {
         devices.values.forEach {
             it.stop()
         }
+        setLifecycleState(STOPPED)
         super.stop()
-        lifecycleState = STOPPED
     }
 
     public companion object {
@@ -210,13 +205,9 @@ public fun <D : Device> DeviceGroup.install(name: Name, device: D): D {
     }
 }
 
-public fun <D : Device> DeviceGroup.install(name: String, device: D): D =
-    install(name.parseAsName(), device)
+public fun <D : Device> DeviceGroup.install(name: String, device: D): D = install(name.parseAsName(), device)
 
-public fun <D : Device> DeviceGroup.install(device: D): D =
-    install(device.id, device)
-
-public fun <D : Device> Context.install(name: String, device: D): D = request(DeviceManager).install(name, device)
+public fun <D : Device> DeviceGroup.install(device: D): D = install(device.id, device)
 
 /**
  * Add a device creating intermediate groups if necessary. If device with given [name] already exists, throws an error.
@@ -292,7 +283,7 @@ public fun <T : Any> DeviceGroup.registerVirtualProperty(
     descriptorBuilder: PropertyDescriptor.() -> Unit = {},
     callback: (T) -> Unit = {},
 ): MutableDeviceState<T> {
-    val state = DeviceState.virtual<T>(converter, initialValue, callback)
+    val state = DeviceState.internal<T>(converter, initialValue, callback)
     registerMutableProperty(name, state, descriptorBuilder)
     return state
 }

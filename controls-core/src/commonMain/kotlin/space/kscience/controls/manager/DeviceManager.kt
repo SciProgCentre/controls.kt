@@ -49,6 +49,10 @@ public fun <D : Device> DeviceManager.install(name: String, device: D): D {
 public fun <D : Device> DeviceManager.install(device: D): D = install(device.id, device)
 
 
+public fun <D : Device> Context.install(name: String, device: D): D = request(DeviceManager).install(name, device)
+
+public fun <D : Device> Context.install(device: D): D = request(DeviceManager).install(device.id, device)
+
 /**
  * Register and start a device built by [factory] with current [Context] and [meta].
  */
@@ -76,4 +80,3 @@ public inline fun <D : Device> DeviceManager.installing(
         }
     }
 }
-

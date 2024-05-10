@@ -12,7 +12,6 @@ import space.kscience.dataforge.context.logger
 import space.kscience.dataforge.meta.Meta
 import space.kscience.dataforge.meta.get
 import space.kscience.dataforge.meta.string
-import space.kscience.dataforge.misc.DFExperimental
 import space.kscience.dataforge.misc.DfType
 import space.kscience.dataforge.names.parseAsName
 
@@ -100,12 +99,11 @@ public interface Device : ContextAware, CoroutineScope {
     /**
      * Close and terminate the device. This function does not wait for the device to be closed.
      */
-    public fun stop() {
+    public suspend fun stop() {
         logger.info { "Device $this is closed" }
         cancel("The device is closed")
     }
 
-    @DFExperimental
     public val lifecycleState: DeviceLifecycleState
 
     public companion object {

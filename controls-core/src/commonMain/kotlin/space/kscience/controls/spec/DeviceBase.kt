@@ -9,11 +9,11 @@ import kotlinx.coroutines.sync.withLock
 import space.kscience.controls.api.*
 import space.kscience.dataforge.context.Context
 import space.kscience.dataforge.context.debug
+import space.kscience.dataforge.context.error
 import space.kscience.dataforge.context.logger
 import space.kscience.dataforge.meta.Meta
 import space.kscience.dataforge.meta.get
 import space.kscience.dataforge.meta.int
-import space.kscience.dataforge.misc.DFExperimental
 import kotlin.coroutines.CoroutineContext
 
 /**
@@ -72,10 +72,10 @@ public abstract class DeviceBase<D : Device>(
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    @OptIn(ExperimentalCoroutinesApi::class)
     override val coroutineContext: CoroutineContext = context.newCoroutineContext(
         SupervisorJob(context.coroutineContext[Job]) +
-                CoroutineName("Device $this") +
+                CoroutineName("Device $id") +
                 CoroutineExceptionHandler { _, throwable ->
                     launch {
                         sharedMessageFlow.emit(
@@ -86,6 +86,7 @@ public abstract class DeviceBase<D : Device>(
                             )
                         )
                     }
+                    logger.error(throwable) { "Exception in device $id" }
                 }
     )
 
@@ -187,43 +188,39 @@ public abstract class DeviceBase<D : Device>(
         return spec.executeWithMeta(self, argument ?: Meta.EMPTY)
     }
 
-    @DFExperimental
     final override var lifecycleState: DeviceLifecycleState = DeviceLifecycleState.STOPPED
-        private set(value) {
-            if (field != value) {
-                launch {
-                    sharedMessageFlow.emit(
-                        DeviceLifeCycleMessage(value)
-                    )
-                }
-            }
-            field = value
-        }
+        private set
+
+
+    private suspend fun setLifecycleState(lifecycleState: DeviceLifecycleState) {
+        this.lifecycleState = lifecycleState
+        sharedMessageFlow.emit(
+            DeviceLifeCycleMessage(lifecycleState)
+        )
+    }
 
     protected open suspend fun onStart() {
 
     }
 
-    @OptIn(DFExperimental::class)
     final override suspend fun start() {
         if (lifecycleState == DeviceLifecycleState.STOPPED) {
             super.start()
-            lifecycleState = DeviceLifecycleState.STARTING
+            setLifecycleState(DeviceLifecycleState.STARTING)
             onStart()
-            lifecycleState = DeviceLifecycleState.STARTED
+            setLifecycleState(DeviceLifecycleState.STARTED)
         } else {
             logger.debug { "Device $this is already started" }
         }
     }
 
-    protected open fun onStop() {
+    protected open suspend fun onStop() {
 
     }
 
-    @OptIn(DFExperimental::class)
-    final override fun stop() {
+    final override suspend fun stop() {
         onStop()
-        lifecycleState = DeviceLifecycleState.STOPPED
+        setLifecycleState(DeviceLifecycleState.STOPPED)
         super.stop()
     }
 

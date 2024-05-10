@@ -10,8 +10,13 @@ description = """
 kscience{
     jvm()
     js()
-    dependencies {
+    useCoroutines()
+    commonMain {
         api(projects.controlsCore)
+    }
+
+    commonTest{
+        implementation(spclibs.logback.classic)
     }
 }
 

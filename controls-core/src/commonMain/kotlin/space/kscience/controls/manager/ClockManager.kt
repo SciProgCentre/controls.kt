@@ -6,13 +6,19 @@ import space.kscience.dataforge.context.Context
 import space.kscience.dataforge.context.PluginFactory
 import space.kscience.dataforge.context.PluginTag
 import space.kscience.dataforge.meta.Meta
+import kotlin.time.Duration
 
 public class ClockManager : AbstractPlugin() {
-    override val tag: PluginTag get() = DeviceManager.tag
+    override val tag: PluginTag get() = Companion.tag
 
     public val clock: Clock by lazy {
         //TODO add clock customization
         Clock.System
+    }
+
+    public suspend fun delay(duration: Duration) {
+        //TODO add time compression
+        kotlinx.coroutines.delay(duration)
     }
 
     public companion object : PluginFactory<ClockManager> {

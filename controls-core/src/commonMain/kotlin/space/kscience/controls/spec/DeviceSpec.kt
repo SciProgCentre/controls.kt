@@ -4,8 +4,10 @@ import kotlinx.coroutines.withContext
 import space.kscience.controls.api.ActionDescriptor
 import space.kscience.controls.api.Device
 import space.kscience.controls.api.PropertyDescriptor
+import space.kscience.controls.api.metaDescriptor
 import space.kscience.dataforge.meta.Meta
 import space.kscience.dataforge.meta.MetaConverter
+import space.kscience.dataforge.meta.descriptors.MetaDescriptor
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
@@ -54,6 +56,11 @@ public abstract class DeviceSpec<D : Device> {
             val deviceProperty = object : DevicePropertySpec<D, T> {
 
                 override val descriptor: PropertyDescriptor = PropertyDescriptor(propertyName).apply {
+                    converter.descriptor?.let { converterDescriptor ->
+                        metaDescriptor {
+                            from(converterDescriptor)
+                        }
+                    }
                     fromSpec(property)
                     descriptorBuilder()
                 }
@@ -83,6 +90,11 @@ public abstract class DeviceSpec<D : Device> {
                     propertyName,
                     mutable = true
                 ).apply {
+                    converter.descriptor?.let { converterDescriptor ->
+                        metaDescriptor {
+                            from(converterDescriptor)
+                        }
+                    }
                     fromSpec(property)
                     descriptorBuilder()
                 }
@@ -118,6 +130,19 @@ public abstract class DeviceSpec<D : Device> {
             val actionName = name ?: property.name
             val deviceAction = object : DeviceActionSpec<D, I, O> {
                 override val descriptor: ActionDescriptor = ActionDescriptor(actionName).apply {
+                    inputConverter.descriptor?.let { converterDescriptor ->
+                        inputMetaDescriptor = MetaDescriptor {
+                            from(converterDescriptor)
+                            from(inputMetaDescriptor)
+                        }
+                    }
+                    outputConverter.descriptor?.let { converterDescriptor ->
+                        outputMetaDescriptor = MetaDescriptor {
+                            from(converterDescriptor)
+                            from(outputMetaDescriptor)
+                        }
+                    }
+
                     fromSpec(property)
                     descriptorBuilder()
                 }

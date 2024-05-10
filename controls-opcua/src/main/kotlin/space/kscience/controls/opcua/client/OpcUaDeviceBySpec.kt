@@ -63,7 +63,7 @@ public open class OpcUaDeviceBySpec<D : Device>(
         }
     }
 
-    override fun onStop() {
+    override suspend fun onStop() {
         client.disconnect()
     }
 }

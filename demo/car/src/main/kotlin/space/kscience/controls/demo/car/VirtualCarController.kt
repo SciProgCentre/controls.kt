@@ -8,6 +8,7 @@ import javafx.scene.layout.Priority
 import javafx.stage.Stage
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import space.kscience.controls.client.launchMagixService
 import space.kscience.controls.demo.car.IVirtualCar.Companion.acceleration
 import space.kscience.controls.manager.DeviceManager
@@ -67,7 +68,7 @@ class VirtualCarController : Controller(), ContextAware {
         }
     }
 
-    fun shutdown() {
+    suspend fun shutdown() {
         logger.info { "Shutting down..." }
         magixServer?.stop(1000, 5000)
         logger.info { "Magix server stopped" }
@@ -137,7 +138,9 @@ class VirtualCarControllerApp : App(VirtualCarControllerView::class) {
     }
 
     override fun stop() {
-        controller.shutdown()
+        runBlocking {
+            controller.shutdown()
+        }
         super.stop()
     }
 }
