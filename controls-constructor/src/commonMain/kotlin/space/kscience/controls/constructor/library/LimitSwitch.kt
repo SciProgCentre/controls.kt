@@ -35,7 +35,7 @@ public class VirtualLimitSwitch(
     public val lockedState: DeviceState<Boolean>,
 ) : DeviceBySpec<LimitSwitch>(LimitSwitch, context), LimitSwitch {
 
-    init {
+    override suspend fun onStart() {
         lockedState.valueFlow.onEach {
             propertyChanged(LimitSwitch.locked, it)
         }.launchIn(this)
