@@ -165,12 +165,12 @@ class PiMotionMasterDevice(
             }
             //Update port
             //address = portSpec.node
-            port = portFactory(portSpec, context)
-            propertyChanged(connected, true)
+            port = portFactory(portSpec, context).apply { open() }
 //        connector.open()
             //Initialize axes
             val idn = read(identity)
             failIfError { "Can't connect to $portSpec. Error code: $it" }
+            propertyChanged(connected, true)
             logger.info { "Connected to $idn on $portSpec" }
             val ids = request("SAI?").map { it.trim() }
             if (ids != axes.keys.toList()) {

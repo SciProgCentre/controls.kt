@@ -45,20 +45,22 @@ fun ColumnScope.piMotionMasterAxis(
     axisName: String,
     axis: PiMotionMasterDevice.Axis,
 ) {
+    var min by remember { mutableStateOf(0f) }
+    var max by remember { mutableStateOf(1f) }
+    var targetPosition by remember { mutableStateOf(0f) }
+    val position: Double by axis.composeState(PiMotionMasterDevice.Axis.position, 0.0)
+
+    val scope = rememberCoroutineScope()
+
+    LaunchedEffect(axis) {
+        min = axis.read(PiMotionMasterDevice.Axis.minPosition).toFloat()
+        max = axis.read(PiMotionMasterDevice.Axis.maxPosition).toFloat()
+        targetPosition = axis.read(PiMotionMasterDevice.Axis.position).toFloat()
+    }
+
+
     Row {
         Text(axisName)
-        var min by remember { mutableStateOf(0f) }
-        var max by remember { mutableStateOf(0f) }
-        var targetPosition by remember { mutableStateOf(0f) }
-        val position: Double by axis.composeState(PiMotionMasterDevice.Axis.position, 0.0)
-
-        val scope = rememberCoroutineScope()
-
-        LaunchedEffect(axis) {
-            min = axis.read(PiMotionMasterDevice.Axis.minPosition).toFloat()
-            max = axis.read(PiMotionMasterDevice.Axis.maxPosition).toFloat()
-            targetPosition = axis.read(PiMotionMasterDevice.Axis.position).toFloat()
-        }
 
         Column {
             Slider(
@@ -70,10 +72,10 @@ fun ColumnScope.piMotionMasterAxis(
             Slider(
                 value = targetPosition,
                 onValueChange = { newPosition ->
+                    targetPosition = newPosition
                     scope.launch {
                         axis.move(newPosition.toDouble())
                     }
-                    targetPosition = newPosition
                 },
                 valueRange = min..max
             )
@@ -158,13 +160,13 @@ fun PiMotionMasterApp(device: PiMotionMasterDevice) {
                         if (!connected) {
                             device.launch {
                                 device.connect(host, port)
+                                axes = device.axes
                             }
-                            axes = device.axes
                         } else {
                             device.launch {
                                 device.disconnect()
+                                axes = null
                             }
-                            axes = null
                         }
                     },
                     modifier = Modifier.fillMaxWidth()

@@ -8,6 +8,8 @@ import io.ktor.util.InternalAPI
 import io.ktor.util.moveToByteArray
 import io.ktor.utils.io.writeAvailable
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import space.kscience.dataforge.context.Context
 import space.kscience.dataforge.context.Global
 
@@ -28,13 +30,12 @@ fun Context.launchPiDebugServer(port: Int, axes: List<String>): Job = launch(exc
                 val input = socket.openReadChannel()
                 val output = socket.openWriteChannel()
 
-                val sendJob = launch {
-                    virtualDevice.subscribe().collect {
-                        //println("Sending: ${it.decodeToString()}")
-                        output.writeAvailable(it)
-                        output.flush()
-                    }
-                }
+                val sendJob = virtualDevice.subscribe().onEach {
+                    //println("Sending: ${it.decodeToString()}")
+                    output.writeAvailable(it)
+                    output.flush()
+                }.launchIn(this)
+
 
                 try {
                     while (isActive) {

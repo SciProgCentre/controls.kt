@@ -100,6 +100,7 @@ public abstract class AbstractAsynchronousPort(
      * Send a data packet via the port
      */
     override suspend fun send(data: ByteArray) {
+        check(isOpen){"The port is not opened"}
         outgoing.send(data)
     }
 
