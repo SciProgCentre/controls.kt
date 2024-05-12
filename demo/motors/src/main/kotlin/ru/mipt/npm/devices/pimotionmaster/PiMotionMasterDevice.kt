@@ -7,13 +7,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.transformWhile
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import space.kscience.controls.api.DeviceHub
 import space.kscience.controls.api.PropertyDescriptor
-import space.kscience.controls.ports.*
+import space.kscience.controls.ports.AsynchronousPort
+import space.kscience.controls.ports.KtorTcpPort
+import space.kscience.controls.ports.send
+import space.kscience.controls.ports.withStringDelimiter
 import space.kscience.controls.spec.*
 import space.kscience.dataforge.context.*
 import space.kscience.dataforge.meta.*
@@ -33,10 +35,8 @@ class PiMotionMasterDevice(
     //PortProxy { portFactory(address ?: error("The device is not connected"), context) }
 
 
-    fun disconnect() {
-        runBlocking {
-            execute(disconnect)
-        }
+    suspend fun disconnect() {
+        execute(disconnect)
     }
 
     var timeoutValue: Duration = 200.milliseconds
@@ -54,13 +54,11 @@ class PiMotionMasterDevice(
         if (errorCode != 0) error(message(errorCode))
     }
 
-    fun connect(host: String, port: Int) {
-        runBlocking {
-            execute(connect, Meta {
-                "host" put host
-                "port" put port
-            })
-        }
+    suspend fun connect(host: String, port: Int) {
+        execute(connect, Meta {
+            "host" put host
+            "port" put port
+        })
     }
 
     private val mutex = Mutex()
@@ -103,7 +101,7 @@ class PiMotionMasterDevice(
                 }.toList()
             }
         } catch (ex: Throwable) {
-            logger.warn { "Error during PIMotionMaster request. Requesting error code." }
+            logger.error(ex) { "Error during PIMotionMaster request. Requesting error code." }
             val errorCode = getErrorCode()
             dispatchError(errorCode)
             logger.warn { "Error code $errorCode" }

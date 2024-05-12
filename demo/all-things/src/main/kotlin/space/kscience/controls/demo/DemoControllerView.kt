@@ -1,7 +1,7 @@
 package space.kscience.controls.demo
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -173,7 +173,7 @@ fun main() = application {
             controller.shutdown()
             exitApplication()
         },
-        state = rememberWindowState(width = 400.dp, height = 300.dp)
+        state = rememberWindowState(width = 400.dp, height = 320.dp)
     ) {
         MaterialTheme {
             DemoControls(controller)

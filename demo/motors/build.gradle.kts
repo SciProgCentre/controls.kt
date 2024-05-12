@@ -3,10 +3,6 @@ plugins {
     alias(spclibs.plugins.compose)
 }
 
-//application{
-//    mainClass.set("ru.mipt.npm.devices.pimotionmaster.PiMotionMasterAppKt")
-//}
-
 kotlin{
     explicitApi = null
 }
@@ -17,4 +13,17 @@ val dataforgeVersion: String by extra
 dependencies {
     implementation(project(":controls-ports-ktor"))
     implementation(projects.controlsMagix)
+
+    implementation(compose.runtime)
+    implementation(compose.desktop.currentOs)
+    implementation(compose.material3)
+    implementation(spclibs.logback.classic)
+}
+
+compose{
+    desktop{
+        application{
+            mainClass = "ru.mipt.npm.devices.pimotionmaster.PiMotionMasterAppKt"
+        }
+    }
 }

@@ -48,7 +48,7 @@ public operator fun DeviceHub.get(nameToken: NameToken): Device =
 
 public fun DeviceHub.getOrNull(name: Name): Device? = when {
     name.isEmpty() -> this as? Device
-    name.length == 1 -> get(name.firstOrNull()!!)
+    name.length == 1 -> devices[name.firstOrNull()!!]
     else -> (get(name.firstOrNull()!!) as? DeviceHub)?.getOrNull(name.cutFirst())
 }
 
