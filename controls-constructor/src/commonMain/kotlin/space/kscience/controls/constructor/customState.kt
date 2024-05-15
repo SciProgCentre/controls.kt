@@ -8,7 +8,7 @@ import space.kscience.dataforge.meta.MetaConverter
 /**
  *  A state describing a [Double] value in the [range]
  */
-public class DoubleRangeState(
+public class DoubleInRangeState(
     initialValue: Double,
     public val range: ClosedFloatingPointRange<Double>,
 ) : MutableDeviceState<Double> {
@@ -32,20 +32,28 @@ public class DoubleRangeState(
     /**
      * A state showing that the range is on its lower boundary
      */
-    public val atStartState: DeviceState<Boolean> = map(MetaConverter.boolean) { it <= range.start }
+    public val atStart: DeviceState<Boolean> = DeviceState.map(this, MetaConverter.boolean) {
+        it <= range.start
+    }
 
     /**
      * A state showing that the range is on its higher boundary
      */
-    public val atEndState: DeviceState<Boolean> = map(MetaConverter.boolean) { it >= range.endInclusive }
+    public val atEnd: DeviceState<Boolean> = DeviceState.map(this, MetaConverter.boolean) {
+        it >= range.endInclusive
+    }
 
     override fun toString(): String = "DoubleRangeState(range=$range, converter=$converter)"
 
 
 }
 
-@Suppress("UnusedReceiverParameter")
-public fun DeviceGroup.rangeState(
+/**
+ * Create and register a [DoubleInRangeState]
+ */
+public fun BindingsContainer.doubleInRangeState(
     initialValue: Double,
     range: ClosedFloatingPointRange<Double>,
-): DoubleRangeState = DoubleRangeState(initialValue, range)
+): DoubleInRangeState = DoubleInRangeState(initialValue, range).also {
+    registerBinding(StateBinding(it))
+}

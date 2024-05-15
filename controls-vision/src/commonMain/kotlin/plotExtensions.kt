@@ -1,4 +1,4 @@
-@file:OptIn(FlowPreview::class)
+@file:OptIn(FlowPreview::class, FlowPreview::class)
 
 package space.kscience.controls.vision
 

@@ -63,25 +63,25 @@ public interface DeviceStateWithDependencies<T> : DeviceState<T> {
 /**
  * Create a new read-only [DeviceState] that mirrors receiver state by mapping the value with [mapper].
  */
-public fun <T, R> DeviceState<T>.map(
+public fun <T, R> DeviceState.Companion.map(
+    state: DeviceState<T>,
     converter: MetaConverter<R>, mapper: (T) -> R,
 ): DeviceStateWithDependencies<R> = object : DeviceStateWithDependencies<R> {
-    override val dependencies = listOf(this)
+    override val dependencies = listOf(state)
 
     override val converter: MetaConverter<R> = converter
 
-    override val value: R
-        get() = mapper(this@map.value)
+    override val value: R get() = mapper(state.value)
 
-    override val valueFlow: Flow<R> = this@map.valueFlow.map(mapper)
+    override val valueFlow: Flow<R> = state.valueFlow.map(mapper)
 
-    override fun toString(): String = "DeviceState.map(arg=${this@map}, converter=$converter)"
+    override fun toString(): String = "DeviceState.map(arg=${state}, converter=$converter)"
 }
 
 /**
  * Combine two device states into one read-only [DeviceState]. Only the latest value of each state is used.
  */
-public fun <T1, T2, R> combine(
+public fun <T1, T2, R> DeviceState.Companion.combine(
     state1: DeviceState<T1>,
     state2: DeviceState<T2>,
     converter: MetaConverter<R>,

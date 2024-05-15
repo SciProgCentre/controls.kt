@@ -1,5 +1,6 @@
 package space.kscience.controls.constructor
 
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.isActive
@@ -26,9 +27,9 @@ public class TimerState(
 
     private val clock = MutableStateFlow(clockManager.clock.now())
 
-    private val updateJob = clockManager.context.launch {
+    private val updateJob = clockManager.context.launch(clockManager.asDispatcher()) {
         while (isActive) {
-            clockManager.delay(tick)
+            delay(tick)
             clock.value = clockManager.clock.now()
         }
     }

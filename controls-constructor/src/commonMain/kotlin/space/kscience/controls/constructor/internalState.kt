@@ -25,8 +25,6 @@ private class VirtualDeviceState<T>(
         }
 
     override fun toString(): String = "VirtualDeviceState(converter=$converter)"
-
-
 }
 
 

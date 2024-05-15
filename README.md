@@ -104,6 +104,11 @@ Automatically checks consistency.
 >
 > **Maturity**: EXPERIMENTAL
 
+### [controls-plc4x](controls-plc4x)
+> A plugin for Controls-kt device server on top of plc4x library
+>
+> **Maturity**: EXPERIMENTAL
+
 ### [controls-ports-ktor](controls-ports-ktor)
 > Implementation of byte ports on top os ktor-io asynchronous API
 >
@@ -208,6 +213,11 @@ Automatically checks consistency.
 > Magix history database API
 >
 > **Maturity**: PROTOTYPE
+
+### [magix/magix-utils](magix/magix-utils)
+> Common utilities and services for Magix endpoints.   
+>
+> **Maturity**: EXPERIMENTAL
 
 ### [magix/magix-zmq](magix/magix-zmq)
 > ZMQ client endpoint for Magix

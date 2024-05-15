@@ -13,6 +13,8 @@ import space.kscience.plotly.PlotlyConfig
 import space.kscience.visionforge.html.HtmlVisionFragment
 import space.kscience.visionforge.html.VisionPage
 import space.kscience.visionforge.html.VisionTagConsumer
+import space.kscience.visionforge.markup.MarkupPlugin
+import space.kscience.visionforge.plotly.PlotlyPlugin
 import space.kscience.visionforge.plotly.plotly
 import space.kscience.visionforge.server.VisionRoute
 import space.kscience.visionforge.server.close
@@ -25,29 +27,38 @@ public fun Context.showDashboard(
     routes: Routing.() -> Unit = {},
     configurationBuilder: VisionRoute.() -> Unit = {},
     visionFragment: HtmlVisionFragment,
-): ApplicationEngine = embeddedServer(CIO, port = port) {
-    routing {
-        staticResources("", null, null)
-        routes()
+): ApplicationEngine {
+    //create a sub-context for visualization
+    val visualisationContext = buildContext {
+        plugin(PlotlyPlugin)
+        plugin(ControlVisionPlugin)
+        plugin(MarkupPlugin)
     }
 
-    visionPage(
-        visionManager,
-        VisionPage.scriptHeader("js/controls-vision.js"),
-        configurationBuilder = configurationBuilder,
-        visionFragment = visionFragment
-    )
-}.also {
-    it.start(false)
-    it.openInBrowser()
+    return visualisationContext.embeddedServer(CIO, port = port) {
+        routing {
+            staticResources("", null, null)
+            routes()
+        }
+
+        visionPage(
+            visualisationContext.visionManager,
+            VisionPage.scriptHeader("js/controls-vision.js"),
+            configurationBuilder = configurationBuilder,
+            visionFragment = visionFragment
+        )
+    }.also {
+        it.start(false)
+        it.openInBrowser()
 
 
-    println("Enter 'exit' to close server")
-    while (readlnOrNull() != "exit") {
-        //
+        println("Enter 'exit' to close server")
+        while (readlnOrNull() != "exit") {
+            //
+        }
+
+        it.close()
     }
-
-    it.close()
 }
 
 context(VisionTagConsumer<*>)

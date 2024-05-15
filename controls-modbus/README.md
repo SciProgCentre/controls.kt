@@ -14,7 +14,7 @@ Automatically checks consistency.
 
 ## Artifact:
 
-The Maven coordinates of this project are `space.kscience:controls-modbus:0.3.0`.
+The Maven coordinates of this project are `space.kscience:controls-modbus:0.4.0-dev-1`.
 
 **Gradle Kotlin DSL:**
 ```kotlin
@@ -24,6 +24,6 @@ repositories {
 }
 
 dependencies {
-    implementation("space.kscience:controls-modbus:0.3.0")
+    implementation("space.kscience:controls-modbus:0.4.0-dev-1")
 }
 ```

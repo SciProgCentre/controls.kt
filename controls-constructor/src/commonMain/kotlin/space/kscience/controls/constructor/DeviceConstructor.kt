@@ -26,11 +26,11 @@ import kotlin.time.Duration
 public abstract class DeviceConstructor(
     context: Context,
     meta: Meta = Meta.EMPTY,
-) : DeviceGroup(context, meta) {
-    private val _bindings: MutableList<ConstructorBinding> = mutableListOf()
-    public val bindings: List<ConstructorBinding> get() = _bindings
+) : DeviceGroup(context, meta), BindingsContainer {
+    private val _bindings: MutableList<Binding> = mutableListOf()
+    override val bindings: List<Binding> get() = _bindings
 
-    public fun registerBinding(binding: ConstructorBinding) {
+    override fun registerBinding(binding: Binding) {
         _bindings.add(binding)
     }
 
@@ -46,7 +46,7 @@ public abstract class DeviceConstructor(
         .also { registerBinding(StateBinding(it)) }
 
     /**
-     * Launch action that is performed on each [DeviceState] value change.
+     * Bind an action to a [DeviceState]. [onChange] block is performed on each state change
      *
      * Optionally provide [writes] - a set of states that this change affects.
      */

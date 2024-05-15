@@ -14,8 +14,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import kotlinx.coroutines.launch
-import space.kscience.controls.constructor.*
+import space.kscience.controls.constructor.DeviceConstructor
+import space.kscience.controls.constructor.DoubleInRangeState
+import space.kscience.controls.constructor.device
+import space.kscience.controls.constructor.deviceProperty
 import space.kscience.controls.constructor.library.*
 import space.kscience.controls.manager.ClockManager
 import space.kscience.controls.manager.DeviceManager
@@ -40,77 +42,41 @@ import kotlin.time.DurationUnit
 
 
 class LinearDrive(
+    drive: Drive,
+    start: LimitSwitch,
+    end: LimitSwitch,
+    pidParameters: PidParameters,
+    meta: Meta = Meta.EMPTY,
+) : DeviceConstructor(drive.context, meta) {
+
+    val drive: Drive by device(drive)
+    val pid by device(PidRegulator(drive, pidParameters))
+
+    val start by device(start)
+    val end by device(end)
+
+    val position by deviceProperty(drive, Drive.position, Double.NaN)
+
+    val target by deviceProperty(pid, Regulator.target, 0.0)
+}
+
+/**
+ * A shortcut to create a virtual [LimitSwitch] from [DoubleInRangeState]
+ */
+fun LinearDrive(
     context: Context,
-    state: DoubleRangeState,
+    positionState: DoubleInRangeState,
     mass: Double,
     pidParameters: PidParameters,
     meta: Meta = Meta.EMPTY,
-) : DeviceConstructor(context, meta) {
+): LinearDrive = LinearDrive(
+    drive = VirtualDrive(context, mass, positionState),
+    start = VirtualLimitSwitch(context, positionState.atStart),
+    end = VirtualLimitSwitch(context, positionState.atEnd),
+    pidParameters = pidParameters,
+    meta = meta
+)
 
-    val drive by device(VirtualDrive.factory(mass, state))
-    val pid by device(PidRegulator(drive, pidParameters))
-
-    val start by device(LimitSwitch(state.atStartState))
-    val end by device(LimitSwitch(state.atEndState))
-
-
-    val positionState: DoubleRangeState by property(state)
-
-    private val targetState: MutableDeviceState<Double> by deviceProperty(pid, Regulator.target, 0.0)
-    var target: Double by targetState
-}
-
-
-private fun Context.launchPidDevice(
-    state: DoubleRangeState,
-    pidParameters: PidParameters,
-    mass: Double,
-) = launch {
-    val device = install(
-        "device",
-        LinearDrive(this@launchPidDevice, state, mass, pidParameters)
-    ).apply {
-        val clock = context.clock
-        val clockStart = clock.now()
-        doRecurring(10.milliseconds) {
-            val timeFromStart = clock.now() - clockStart
-            val t = timeFromStart.toDouble(DurationUnit.SECONDS)
-            val freq = 0.1
-            target = 5 * sin(2.0 * PI * freq * t) +
-                    sin(2 * PI * 21 * freq * t + 0.02 * (timeFromStart / pidParameters.timeStep))
-        }
-    }
-
-
-    val maxAge = 10.seconds
-
-    showDashboard {
-        plot {
-            plotNumberState(context, state, maxAge = maxAge, sampling = 50.milliseconds) {
-                name = "real position"
-            }
-            plotDeviceProperty(device.pid, Regulator.position.name, maxAge = maxAge, sampling = 50.milliseconds) {
-                name = "read position"
-            }
-
-            plotDeviceProperty(device.pid, Regulator.target.name, maxAge = maxAge, sampling = 50.milliseconds) {
-                name = "target"
-            }
-        }
-
-        plot {
-            plotDeviceProperty(device.start, LimitSwitch.locked.name, maxAge = maxAge, sampling = 50.milliseconds) {
-                name = "start measured"
-                mode = ScatterMode.markers
-            }
-            plotDeviceProperty(device.end, LimitSwitch.locked.name, maxAge = maxAge, sampling = 50.milliseconds) {
-                name = "end measured"
-                mode = ScatterMode.markers
-            }
-        }
-
-    }
-}
 
 fun main() = application {
     val context = Context {
@@ -140,11 +106,56 @@ fun main() = application {
         )
     }
 
-    context.launchPidDevice(
-        DoubleRangeState(0.0, -6.0..6.0),
-        pidParameters,
-        mass = 0.05
+    val state = DoubleInRangeState(0.0, -6.0..6.0)
+
+    val linearDrive = context.install(
+        "linearDrive",
+        LinearDrive(context, state, 0.05, pidParameters)
     )
+
+    val clockStart = context.clock.now()
+    linearDrive.doRecurring(10.milliseconds) {
+        val timeFromStart = clock.now() - clockStart
+        val t = timeFromStart.toDouble(DurationUnit.SECONDS)
+        val freq = 0.1
+        target.value = 5 * sin(2.0 * PI * freq * t) +
+                sin(2 * PI * 21 * freq * t + 0.02 * (timeFromStart / pidParameters.timeStep))
+    }
+
+
+    val maxAge = 10.seconds
+
+    context.showDashboard {
+        plot {
+            plotNumberState(context, state, maxAge = maxAge, sampling = 50.milliseconds) {
+                name = "real position"
+            }
+            plotDeviceProperty(linearDrive.pid, Regulator.position.name, maxAge = maxAge, sampling = 50.milliseconds) {
+                name = "read position"
+            }
+
+            plotDeviceProperty(linearDrive.pid, Regulator.target.name, maxAge = maxAge, sampling = 50.milliseconds) {
+                name = "target"
+            }
+        }
+
+        plot {
+            plotDeviceProperty(
+                linearDrive.start,
+                LimitSwitch.locked.name,
+                maxAge = maxAge,
+                sampling = 50.milliseconds
+            ) {
+                name = "start measured"
+                mode = ScatterMode.markers
+            }
+            plotDeviceProperty(linearDrive.end, LimitSwitch.locked.name, maxAge = maxAge, sampling = 50.milliseconds) {
+                name = "end measured"
+                mode = ScatterMode.markers
+            }
+        }
+
+    }
 
     Window(title = "Pid regulator simulator", onCloseRequest = ::exitApplication) {
         MaterialTheme {

@@ -97,7 +97,7 @@ fun AxisPane(axes: Map<String, PiMotionMasterDevice.Axis>) {
 @Composable
 fun PiMotionMasterApp(device: PiMotionMasterDevice) {
 
-    val scope = rememberCoroutineScope()
+//    val scope = rememberCoroutineScope()
     val connected by device.composeState(PiMotionMasterDevice.connected, false)
     var debugServerJob by remember { mutableStateOf<Job?>(null) }
     var axes by remember { mutableStateOf<Map<String, PiMotionMasterDevice.Axis>?>(null) }

@@ -6,7 +6,6 @@ import kotlinx.serialization.modules.subclass
 import space.kscience.dataforge.context.PluginFactory
 import space.kscience.visionforge.Vision
 import space.kscience.visionforge.VisionPlugin
-import space.kscience.visionforge.plotly.VisionOfPlotly
 
 public expect class ControlVisionPlugin: VisionPlugin{
     public companion object: PluginFactory<ControlVisionPlugin>
@@ -14,6 +13,6 @@ public expect class ControlVisionPlugin: VisionPlugin{
 
 internal val controlsVisionSerializersModule = SerializersModule {
     polymorphic(Vision::class) {
-        subclass(VisionOfPlotly.serializer())
+        subclass(BooleanIndicatorVision.serializer())
     }
 }

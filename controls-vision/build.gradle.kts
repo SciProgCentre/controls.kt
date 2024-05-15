@@ -10,6 +10,7 @@ description = """
 kscience {
     fullStack("js/controls-vision.js")
     useKtor()
+    useSerialization()
     useContextReceivers()
     dependencies {
         api(projects.controlsCore)
