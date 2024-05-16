@@ -17,7 +17,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.eclipse.milo.opcua.sdk.server.OpcUaServer
 import org.eclipse.milo.opcua.stack.core.types.builtin.LocalizedText
-import space.kscience.controls.api.DeviceMessage
 import space.kscience.controls.api.GetDescriptionMessage
 import space.kscience.controls.api.PropertyChangedMessage
 import space.kscience.controls.client.launchMagixService
@@ -30,6 +29,7 @@ import space.kscience.controls.opcua.server.serveDevices
 import space.kscience.controls.spec.write
 import space.kscience.dataforge.context.*
 import space.kscience.magix.api.MagixEndpoint
+import space.kscience.magix.api.MagixMessage
 import space.kscience.magix.api.send
 import space.kscience.magix.api.subscribe
 import space.kscience.magix.rsocket.rSocketWithTcp
@@ -39,6 +39,9 @@ import space.kscience.magix.server.startMagixServer
 import space.kscince.magix.zmq.ZmqMagixFlowPlugin
 import java.awt.Desktop
 import java.net.URI
+
+
+private val json = Json { prettyPrint = true }
 
 class DemoController : ContextAware {
 
@@ -70,7 +73,7 @@ class DemoController : ContextAware {
         )
         //Launch a device client and connect it to the server
         val deviceEndpoint = MagixEndpoint.rSocketWithTcp("localhost")
-        deviceManager.launchMagixService(deviceEndpoint)
+        deviceManager.launchMagixService(deviceEndpoint, "demoDevice")
         //connect visualization to a magix endpoint
         val visualEndpoint = MagixEndpoint.rSocketWithWebSockets("localhost")
         visualizer = startDemoDeviceServer(visualEndpoint)
@@ -81,13 +84,19 @@ class DemoController : ContextAware {
 
 
         val listenerEndpoint = MagixEndpoint.rSocketWithWebSockets("localhost")
-        listenerEndpoint.subscribe(DeviceManager.magixFormat).onEach { (_, deviceMessage) ->
+
+        listenerEndpoint.subscribe(DeviceManager.magixFormat).onEach { (magixMessage, deviceMessage) ->
             // print all messages that are not property change message
             if (deviceMessage !is PropertyChangedMessage) {
-                println(">> ${Json.encodeToString(DeviceMessage.serializer(), deviceMessage)}")
+                println(">> ${json.encodeToString(MagixMessage.serializer(), magixMessage)}")
             }
         }.launchIn(this)
-        listenerEndpoint.send(DeviceManager.magixFormat, GetDescriptionMessage(), "listener", "controls-kt")
+        listenerEndpoint.send(
+            format = DeviceManager.magixFormat,
+            payload = GetDescriptionMessage(),
+            source = "listener",
+//            target = "demoDevice"
+        )
 
     }
 
@@ -114,17 +123,32 @@ fun DemoControls(controller: DemoController) {
         Column {
             Row(Modifier.fillMaxWidth()) {
                 Text("Time Scale", modifier = Modifier.align(Alignment.CenterVertically).width(100.dp))
-                TextField(String.format("%.2f", timeScale),{}, enabled = false, modifier = Modifier.align(Alignment.CenterVertically).width(100.dp))
+                TextField(
+                    String.format("%.2f", timeScale),
+                    {},
+                    enabled = false,
+                    modifier = Modifier.align(Alignment.CenterVertically).width(100.dp)
+                )
                 Slider(timeScale, onValueChange = { timeScale = it }, steps = 20, valueRange = 1000f..5000f)
             }
             Row(Modifier.fillMaxWidth()) {
                 Text("X scale", modifier = Modifier.align(Alignment.CenterVertically).width(100.dp))
-                TextField(String.format("%.2f", xScale),{}, enabled = false, modifier = Modifier.align(Alignment.CenterVertically).width(100.dp))
+                TextField(
+                    String.format("%.2f", xScale),
+                    {},
+                    enabled = false,
+                    modifier = Modifier.align(Alignment.CenterVertically).width(100.dp)
+                )
                 Slider(xScale, onValueChange = { xScale = it }, steps = 20, valueRange = 0.1f..2.0f)
             }
             Row(Modifier.fillMaxWidth()) {
                 Text("Y scale", modifier = Modifier.align(Alignment.CenterVertically).width(100.dp))
-                TextField(String.format("%.2f", yScale),{}, enabled = false, modifier = Modifier.align(Alignment.CenterVertically).width(100.dp))
+                TextField(
+                    String.format("%.2f", yScale),
+                    {},
+                    enabled = false,
+                    modifier = Modifier.align(Alignment.CenterVertically).width(100.dp)
+                )
                 Slider(yScale, onValueChange = { yScale = it }, steps = 20, valueRange = 0.1f..2.0f)
             }
             Row(Modifier.fillMaxWidth()) {

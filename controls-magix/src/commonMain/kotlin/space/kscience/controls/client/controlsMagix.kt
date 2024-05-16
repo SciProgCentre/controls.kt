@@ -29,7 +29,7 @@ public val DeviceManager.Companion.magixFormat: MagixFormat<DeviceMessage> get()
 internal fun generateId(request: MagixMessage): String = if (request.id != null) {
     "${request.id}.response"
 } else {
-    "controls[${request.payload.hashCode().toString(16)}"
+    "controls[${request.payload.hashCode().toUInt().toString(16)}]"
 }
 
 /**
@@ -43,7 +43,7 @@ public fun DeviceManager.launchMagixService(
     coroutineContext: CoroutineContext = EmptyCoroutineContext,
 ): Job = context.launch(coroutineContext) {
     endpoint.subscribe(controlsMagixFormat, targetFilter = listOf(endpointID, null)).onEach { (request, payload) ->
-        val responsePayload = respondHubMessage(payload)
+        val responsePayload: List<DeviceMessage> = respondHubMessage(payload)
         responsePayload.forEach {
             endpoint.send(
                 format = controlsMagixFormat,
