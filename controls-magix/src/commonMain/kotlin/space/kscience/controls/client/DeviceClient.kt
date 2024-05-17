@@ -1,8 +1,11 @@
 package space.kscience.controls.client
 
 import com.benasher44.uuid.uuid4
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import space.kscience.controls.api.*
@@ -23,9 +26,11 @@ private fun stringUID() = uuid4().leastSignificantBits.toString(16)
 /**
  * A remote accessible device that relies on connection via Magix
  */
-public class DeviceClient(
+public class DeviceClient internal constructor(
     override val context: Context,
     private val deviceName: Name,
+    override val propertyDescriptors: Collection<PropertyDescriptor>,
+    override val actionDescriptors: Collection<ActionDescriptor>,
     incomingFlow: Flow<DeviceMessage>,
     private val send: suspend (DeviceMessage) -> Unit,
 ) : CachingDevice {
@@ -37,12 +42,6 @@ public class DeviceClient(
 
     private val propertyCache = HashMap<String, Meta>()
 
-    override var propertyDescriptors: Collection<PropertyDescriptor> = emptyList()
-        private set
-
-    override var actionDescriptors: Collection<ActionDescriptor> = emptyList()
-        private set
-
     private val flowInternal = incomingFlow.filter {
         it.sourceDevice == deviceName
     }.shareIn(this, started = SharingStarted.Eagerly).also {
@@ -50,11 +49,6 @@ public class DeviceClient(
             when (message) {
                 is PropertyChangedMessage -> mutex.withLock {
                     propertyCache[message.property] = message.value
-                }
-
-                is DescriptionMessage -> mutex.withLock {
-                    propertyDescriptors = message.properties
-                    actionDescriptors = message.actions
                 }
 
                 else -> {
@@ -112,14 +106,38 @@ public class DeviceClient(
  * @param targetEndpointName the name of endpoint in Magix to connect to
  * @param deviceName the name of device within endpoint
  */
-public fun MagixEndpoint.remoteDevice(
+public suspend fun MagixEndpoint.remoteDevice(
     context: Context,
     sourceEndpointName: String,
     targetEndpointName: String,
     deviceName: Name,
-): DeviceClient {
+): DeviceClient = coroutineScope{
     val subscription = subscribe(DeviceManager.magixFormat, originFilter = listOf(targetEndpointName)).map { it.second }
-    return DeviceClient(context, deviceName, subscription) {
+
+    val deferredDescriptorMessage = CompletableDeferred<DescriptionMessage>()
+
+    launch {
+        deferredDescriptorMessage.complete(subscription.filterIsInstance<DescriptionMessage>().first())
+    }
+
+    send(
+        format = DeviceManager.magixFormat,
+        payload = GetDescriptionMessage(targetDevice = deviceName),
+        source = sourceEndpointName,
+        target = targetEndpointName,
+        id = stringUID()
+    )
+
+
+    val descriptionMessage = deferredDescriptorMessage.await()
+
+    DeviceClient(
+        context = context,
+        deviceName = deviceName,
+        propertyDescriptors = descriptionMessage.properties,
+        actionDescriptors = descriptionMessage.actions,
+        incomingFlow = subscription
+    ) {
         send(
             format = DeviceManager.magixFormat,
             payload = it,
@@ -129,6 +147,8 @@ public fun MagixEndpoint.remoteDevice(
         )
     }
 }
+
+//public fun MagixEndpoint.remoteDeviceHub()
 
 /**
  * Subscribe on specific property of a device without creating a device

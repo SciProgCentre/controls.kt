@@ -17,10 +17,14 @@ kscience {
     useSerialization {
         json()
     }
-    dependencies {
+    commonMain {
         api(projects.magix.magixApi)
         api(projects.controlsCore)
         api(libs.uuid)
+    }
+
+    jvmTest{
+        implementation(spclibs.logback.classic)
     }
 }
 

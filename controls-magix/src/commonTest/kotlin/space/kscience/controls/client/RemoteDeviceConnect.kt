@@ -1,9 +1,12 @@
 package space.kscience.controls.client
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import space.kscience.controls.api.DeviceMessage
 import space.kscience.controls.manager.DeviceManager
 import space.kscience.controls.manager.install
 import space.kscience.controls.manager.respondMessage
@@ -46,7 +49,7 @@ internal class RemoteDeviceConnect {
     }
 
     @Test
-    fun wrapper() = runTest {
+    fun deviceClient() = runTest {
         val context = Context {
             plugin(DeviceManager)
         }
@@ -56,11 +59,15 @@ internal class RemoteDeviceConnect {
         val virtualMagixEndpoint = object : MagixEndpoint {
 
 
-            override fun subscribe(filter: MagixMessageFilter): Flow<MagixMessage> = device.messageFlow.map {
+            private val additionalMessages = MutableSharedFlow<DeviceMessage>(10)
+
+            override fun subscribe(
+                filter: MagixMessageFilter,
+            ): Flow<MagixMessage> = merge(device.messageFlow, additionalMessages).map {
                 MagixMessage(
                     format = DeviceManager.magixFormat.defaultFormat,
                     payload = MagixEndpoint.magixJson.encodeToJsonElement(DeviceManager.magixFormat.serializer, it),
-                    sourceEndpoint = "source",
+                    sourceEndpoint = "device",
                 )
             }
 
@@ -68,16 +75,18 @@ internal class RemoteDeviceConnect {
                 device.respondMessage(
                     Name.EMPTY,
                     Json.decodeFromJsonElement(DeviceManager.magixFormat.serializer, message.payload)
-                )
+                )?.let {
+                    additionalMessages.emit(it)
+                }
             }
 
             override fun close() {
                 //
             }
         }
-
-        val remoteDevice = virtualMagixEndpoint.remoteDevice(context, "source", "target", Name.EMPTY)
+        val remoteDevice = virtualMagixEndpoint.remoteDevice(context, "client", "device", Name.EMPTY)
 
         assertContains(0.0..1.0, remoteDevice.read(TestDevice.value))
+
     }
 }

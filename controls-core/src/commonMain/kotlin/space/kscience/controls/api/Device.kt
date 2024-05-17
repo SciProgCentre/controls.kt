@@ -100,8 +100,8 @@ public interface Device : ContextAware, CoroutineScope {
      * Close and terminate the device. This function does not wait for the device to be closed.
      */
     public suspend fun stop() {
+        coroutineContext[Job]?.cancel("The device is closed")
         logger.info { "Device $this is closed" }
-        cancel("The device is closed")
     }
 
     public val lifecycleState: DeviceLifecycleState

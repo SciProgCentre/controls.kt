@@ -56,6 +56,6 @@ public suspend fun <T> MagixEndpoint.send(
         parentId = parentId,
         user = user
     )
-    broadcast(message)
+    send(message)
 }
 

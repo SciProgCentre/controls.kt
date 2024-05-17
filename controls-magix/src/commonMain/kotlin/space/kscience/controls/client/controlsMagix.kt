@@ -1,5 +1,6 @@
 package space.kscience.controls.client
 
+import com.benasher44.uuid.uuid4
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
@@ -29,7 +30,7 @@ public val DeviceManager.Companion.magixFormat: MagixFormat<DeviceMessage> get()
 internal fun generateId(request: MagixMessage): String = if (request.id != null) {
     "${request.id}.response"
 } else {
-    "controls[${request.payload.hashCode().toUInt().toString(16)}]"
+    uuid4().leastSignificantBits.toULong().toString(16)
 }
 
 /**
