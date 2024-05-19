@@ -163,23 +163,64 @@ private class MapBasedDeviceHub(val deviceMap: Map<Name, Device>, val prefix: Na
 
 }
 
-public fun MagixEndpoint.remoteDeviceHub(
+/**
+ * Create a dynamic [DeviceHub] from incoming messages
+ */
+public suspend fun MagixEndpoint.remoteDeviceHub(
     context: Context,
     thisEndpoint: String,
     deviceEndpoint: String,
 ): DeviceHub {
     val devices = mutableMapOf<Name, DeviceClient>()
     val subscription = subscribe(DeviceManager.magixFormat, originFilter = listOf(deviceEndpoint)).map { it.second }
-    subscription.filterIsInstance<DescriptionMessage>().onEach {
-
+    subscription.filterIsInstance<DescriptionMessage>().onEach { descriptionMessage ->
+        devices.getOrPut(descriptionMessage.sourceDevice) {
+            DeviceClient(
+                context = context,
+                deviceName = descriptionMessage.sourceDevice,
+                propertyDescriptors = descriptionMessage.properties,
+                actionDescriptors = descriptionMessage.actions,
+                incomingFlow = subscription
+            ) {
+                send(
+                    format = DeviceManager.magixFormat,
+                    payload = it,
+                    source = thisEndpoint,
+                    target = deviceEndpoint,
+                    id = stringUID()
+                )
+            }
+        }.run {
+            propertyDescriptors = descriptionMessage.properties
+        }
     }.launchIn(context)
 
 
-    return object : DeviceHub {
-        override val devices: Map<Name, Device>
-            get() = TODO("Not yet implemented")
+    send(
+        format = DeviceManager.magixFormat,
+        payload = GetDescriptionMessage(targetDevice = null),
+        source = thisEndpoint,
+        target = deviceEndpoint,
+        id = stringUID()
+    )
 
-    }
+    return DeviceHub(devices)
+}
+
+/**
+ * Request a description update for all devices on an endpoint
+ */
+public suspend fun MagixEndpoint.requestDeviceUpdate(
+    thisEndpoint: String,
+    deviceEndpoint: String,
+) {
+    send(
+        format = DeviceManager.magixFormat,
+        payload = GetDescriptionMessage(),
+        source = thisEndpoint,
+        target = deviceEndpoint,
+        id = stringUID()
+    )
 }
 
 /**
