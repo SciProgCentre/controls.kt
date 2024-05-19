@@ -16,6 +16,8 @@ import space.kscience.dataforge.context.Context
 import space.kscience.dataforge.meta.Meta
 import space.kscience.dataforge.misc.DFExperimental
 import space.kscience.dataforge.names.Name
+import space.kscience.dataforge.names.length
+import space.kscience.dataforge.names.startsWith
 import space.kscience.magix.api.MagixEndpoint
 import space.kscience.magix.api.send
 import space.kscience.magix.api.subscribe
@@ -29,12 +31,18 @@ private fun stringUID() = uuid4().leastSignificantBits.toString(16)
 public class DeviceClient internal constructor(
     override val context: Context,
     private val deviceName: Name,
-    override val propertyDescriptors: Collection<PropertyDescriptor>,
-    override val actionDescriptors: Collection<ActionDescriptor>,
+    propertyDescriptors: Collection<PropertyDescriptor>,
+    actionDescriptors: Collection<ActionDescriptor>,
     incomingFlow: Flow<DeviceMessage>,
     private val send: suspend (DeviceMessage) -> Unit,
 ) : CachingDevice {
 
+
+    override var actionDescriptors: Collection<ActionDescriptor> = actionDescriptors
+        internal set
+
+    override var propertyDescriptors: Collection<PropertyDescriptor> = propertyDescriptors
+        internal set
 
     override val coroutineContext: CoroutineContext = context.coroutineContext + Job(context.coroutineContext[Job])
 
@@ -44,19 +52,17 @@ public class DeviceClient internal constructor(
 
     private val flowInternal = incomingFlow.filter {
         it.sourceDevice == deviceName
-    }.shareIn(this, started = SharingStarted.Eagerly).also {
-        it.onEach { message ->
-            when (message) {
-                is PropertyChangedMessage -> mutex.withLock {
-                    propertyCache[message.property] = message.value
-                }
-
-                else -> {
-                    //ignore
-                }
+    }.onEach { message ->
+        when (message) {
+            is PropertyChangedMessage -> mutex.withLock {
+                propertyCache[message.property] = message.value
             }
-        }.launchIn(this)
-    }
+
+            else -> {
+                //ignore
+            }
+        }
+    }.shareIn(this, started = SharingStarted.Eagerly)
 
     override val messageFlow: Flow<DeviceMessage> get() = flowInternal
 
@@ -65,7 +71,7 @@ public class DeviceClient internal constructor(
         send(
             PropertyGetMessage(propertyName, targetDevice = deviceName)
         )
-        return flowInternal.filterIsInstance<PropertyChangedMessage>().first {
+        return messageFlow.filterIsInstance<PropertyChangedMessage>().first {
             it.property == propertyName
         }.value
     }
@@ -89,30 +95,33 @@ public class DeviceClient internal constructor(
         send(
             ActionExecuteMessage(actionName, argument, id, targetDevice = deviceName)
         )
-        return flowInternal.filterIsInstance<ActionResultMessage>().first {
+        return messageFlow.filterIsInstance<ActionResultMessage>().first {
             it.action == actionName && it.requestId == id
         }.result
     }
 
+    private val lifecycleStateFlow = messageFlow.filterIsInstance<DeviceLifeCycleMessage>()
+        .map { it.state }.stateIn(this, started = SharingStarted.Eagerly, DeviceLifecycleState.STARTED)
+
     @DFExperimental
-    override val lifecycleState: DeviceLifecycleState = DeviceLifecycleState.STARTED
+    override val lifecycleState: DeviceLifecycleState get() = lifecycleStateFlow.value
 }
 
 /**
  * Connect to a remote device via this endpoint.
  *
  * @param context a [Context] to run device in
- * @param sourceEndpointName the name of this endpoint
- * @param targetEndpointName the name of endpoint in Magix to connect to
+ * @param thisEndpoint the name of this endpoint
+ * @param deviceEndpoint the name of endpoint in Magix to connect to
  * @param deviceName the name of device within endpoint
  */
 public suspend fun MagixEndpoint.remoteDevice(
     context: Context,
-    sourceEndpointName: String,
-    targetEndpointName: String,
+    thisEndpoint: String,
+    deviceEndpoint: String,
     deviceName: Name,
-): DeviceClient = coroutineScope{
-    val subscription = subscribe(DeviceManager.magixFormat, originFilter = listOf(targetEndpointName)).map { it.second }
+): DeviceClient = coroutineScope {
+    val subscription = subscribe(DeviceManager.magixFormat, originFilter = listOf(deviceEndpoint)).map { it.second }
 
     val deferredDescriptorMessage = CompletableDeferred<DescriptionMessage>()
 
@@ -123,8 +132,8 @@ public suspend fun MagixEndpoint.remoteDevice(
     send(
         format = DeviceManager.magixFormat,
         payload = GetDescriptionMessage(targetDevice = deviceName),
-        source = sourceEndpointName,
-        target = targetEndpointName,
+        source = thisEndpoint,
+        target = deviceEndpoint,
         id = stringUID()
     )
 
@@ -141,14 +150,37 @@ public suspend fun MagixEndpoint.remoteDevice(
         send(
             format = DeviceManager.magixFormat,
             payload = it,
-            source = sourceEndpointName,
-            target = targetEndpointName,
+            source = thisEndpoint,
+            target = deviceEndpoint,
             id = stringUID()
         )
     }
 }
 
-//public fun MagixEndpoint.remoteDeviceHub()
+private class MapBasedDeviceHub(val deviceMap: Map<Name, Device>, val prefix: Name) : DeviceHub {
+    override val devices: Map<Name, Device>
+        get() = deviceMap.filterKeys { name: Name -> name == prefix || (name.startsWith(prefix) && name.length == prefix.length + 1) }
+
+}
+
+public fun MagixEndpoint.remoteDeviceHub(
+    context: Context,
+    thisEndpoint: String,
+    deviceEndpoint: String,
+): DeviceHub {
+    val devices = mutableMapOf<Name, DeviceClient>()
+    val subscription = subscribe(DeviceManager.magixFormat, originFilter = listOf(deviceEndpoint)).map { it.second }
+    subscription.filterIsInstance<DescriptionMessage>().onEach {
+
+    }.launchIn(context)
+
+
+    return object : DeviceHub {
+        override val devices: Map<Name, Device>
+            get() = TODO("Not yet implemented")
+
+    }
+}
 
 /**
  * Subscribe on specific property of a device without creating a device

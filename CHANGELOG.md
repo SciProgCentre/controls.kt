@@ -5,10 +5,14 @@
 ### Added
 - Value averaging plot extension
 - PLC4X bindings
+- Shortcuts to access all Controls devices in a magix network.
+- `DeviceClient` properly evaluates lifecycle and logs
 
 ### Changed
-- Constructor properties return `DeviceStat` in order to be able to subscribe to them
+- Constructor properties return `DeviceState` in order to be able to subscribe to them
 - Refactored ports. Now we have `AsynchronousPort` as well as `SynchronousPort`
+- `DeviceClient` now initializes property and action descriptors eagerly.
+- `DeviceHub` now works with `Name` instead of `NameToken`. Tree-like structure is made using `Path`. Device messages no longer have access to sub-devices.
 
 ### Deprecated
 

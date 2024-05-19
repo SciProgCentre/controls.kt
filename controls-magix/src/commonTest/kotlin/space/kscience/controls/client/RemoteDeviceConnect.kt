@@ -59,7 +59,7 @@ internal class RemoteDeviceConnect {
         val virtualMagixEndpoint = object : MagixEndpoint {
 
 
-            private val additionalMessages = MutableSharedFlow<DeviceMessage>(10)
+            private val additionalMessages = MutableSharedFlow<DeviceMessage>(1)
 
             override fun subscribe(
                 filter: MagixMessageFilter,

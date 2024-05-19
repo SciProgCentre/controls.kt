@@ -7,7 +7,7 @@ import space.kscience.controls.spec.DeviceBySpec
 import space.kscience.controls.spec.DeviceSpec
 import space.kscience.dataforge.context.Context
 import space.kscience.dataforge.meta.Meta
-import space.kscience.dataforge.names.NameToken
+import space.kscience.dataforge.names.Name
 
 /**
  * A variant of [DeviceBySpec] that includes Modbus RTU/TCP/UDP client
@@ -35,12 +35,12 @@ public open class ModbusDeviceBySpec<D: Device>(
 public class ModbusHub(
     public val context: Context,
     public val masterBuilder: () -> AbstractModbusMaster,
-    public val specs: Map<NameToken, Pair<Int, DeviceSpec<*>>>,
+    public val specs: Map<Name, Pair<Int, DeviceSpec<*>>>,
 ) : DeviceHub, AutoCloseable {
 
     public val master: AbstractModbusMaster by lazy(masterBuilder)
 
-    override val devices: Map<NameToken, ModbusDevice> by lazy {
+    override val devices: Map<Name, ModbusDevice> by lazy {
         specs.mapValues { (_, pair) ->
             ModbusDeviceBySpec(
                 context,

@@ -8,10 +8,10 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Instant
 import space.kscience.controls.constructor.DeviceGroup
-import space.kscience.controls.constructor.install
 import space.kscience.controls.manager.clock
 import space.kscience.controls.spec.DeviceBySpec
 import space.kscience.controls.spec.write
+import space.kscience.dataforge.names.parseAsName
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
@@ -94,4 +94,4 @@ public fun DeviceGroup.pid(
     name: String,
     drive: Drive,
     pidParameters: PidParameters,
-): PidRegulator = install(name, PidRegulator(drive, pidParameters))
+): PidRegulator = install(name.parseAsName(), PidRegulator(drive, pidParameters))

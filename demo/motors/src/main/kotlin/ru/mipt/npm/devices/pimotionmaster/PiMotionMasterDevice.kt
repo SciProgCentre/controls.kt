@@ -19,7 +19,8 @@ import space.kscience.controls.ports.withStringDelimiter
 import space.kscience.controls.spec.*
 import space.kscience.dataforge.context.*
 import space.kscience.dataforge.meta.*
-import space.kscience.dataforge.names.NameToken
+import space.kscience.dataforge.names.Name
+import space.kscience.dataforge.names.parseAsName
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.time.Duration
@@ -47,7 +48,7 @@ class PiMotionMasterDevice(
     var axes: Map<String, Axis> = emptyMap()
         private set
 
-    override val devices: Map<NameToken, Axis> = axes.mapKeys { (key, _) -> NameToken(key) }
+    override val devices: Map<Name, Axis> = axes.mapKeys { (key, _) -> key.parseAsName() }
 
     private suspend fun failIfError(message: (Int) -> String = { "Failed with error code $it" }) {
         val errorCode = getErrorCode()

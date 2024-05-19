@@ -10,9 +10,14 @@ import space.kscience.controls.api.DeviceLifecycleState.*
 import space.kscience.controls.manager.DeviceManager
 import space.kscience.controls.manager.install
 import space.kscience.dataforge.context.*
-import space.kscience.dataforge.meta.*
+import space.kscience.dataforge.meta.Laminate
+import space.kscience.dataforge.meta.Meta
+import space.kscience.dataforge.meta.MetaConverter
+import space.kscience.dataforge.meta.MutableMeta
 import space.kscience.dataforge.misc.DFExperimental
-import space.kscience.dataforge.names.*
+import space.kscience.dataforge.names.Name
+import space.kscience.dataforge.names.get
+import space.kscience.dataforge.names.parseAsName
 import kotlin.collections.set
 import kotlin.coroutines.CoroutineContext
 
@@ -60,15 +65,15 @@ public open class DeviceGroup(
     )
 
 
-    private val _devices = hashMapOf<NameToken, Device>()
+    private val _devices = hashMapOf<Name, Device>()
 
-    override val devices: Map<NameToken, Device> = _devices
+    override val devices: Map<Name, Device> = _devices
 
     /**
      * Register and initialize (synchronize child's lifecycle state with group state) a new device in this group
      */
     @OptIn(DFExperimental::class)
-    public open fun <D : Device> install(token: NameToken, device: D): D {
+    public open fun <D : Device> install(token: Name, device: D): D {
         require(_devices[token] == null) { "A child device with name $token already exists" }
         //start the child device if needed
         if (lifecycleState == STARTED || lifecycleState == STARTING) launch { device.start() }
@@ -175,35 +180,16 @@ public fun Context.registerDeviceGroup(
     block: DeviceGroup.() -> Unit,
 ): DeviceGroup = request(DeviceManager).registerDeviceGroup(name, meta, block)
 
-private fun DeviceGroup.getOrCreateGroup(name: Name): DeviceGroup {
-    return when (name.length) {
-        0 -> this
-        1 -> {
-            val token = name.first()
-            when (val d = devices[token]) {
-                null -> install(
-                    token,
-                    DeviceGroup(context, meta[token] ?: Meta.EMPTY)
-                )
-
-                else -> (d as? DeviceGroup) ?: error("Device $name is not a DeviceGroup")
-            }
-        }
-
-        else -> getOrCreateGroup(name.first().asName()).getOrCreateGroup(name.cutFirst())
-    }
-}
-
-/**
- * Register a device at given [name] path
- */
-public fun <D : Device> DeviceGroup.install(name: Name, device: D): D {
-    return when (name.length) {
-        0 -> error("Can't use empty name for a child device")
-        1 -> install(name.first(), device)
-        else -> getOrCreateGroup(name.cutLast()).install(name.tokens.last(), device)
-    }
-}
+///**
+// * Register a device at given [path] path
+// */
+//public fun <D : Device> DeviceGroup.install(path: Path, device: D): D {
+//    return when (path.length) {
+//        0 -> error("Can't use empty path for a child device")
+//        1 -> install(path.first().name, device)
+//        else -> getOrCreateGroup(path.cutLast()).install(path.tokens.last(), device)
+//    }
+//}
 
 public fun <D : Device> DeviceGroup.install(name: String, device: D): D = install(name.parseAsName(), device)
 
@@ -238,7 +224,7 @@ public fun <D : Device> DeviceGroup.install(
  * Create or edit a group with a given [name].
  */
 public fun DeviceGroup.registerDeviceGroup(name: Name, block: DeviceGroup.() -> Unit): DeviceGroup =
-    getOrCreateGroup(name).apply(block)
+    install(name, DeviceGroup(context, meta).apply(block))
 
 public fun DeviceGroup.registerDeviceGroup(name: String, block: DeviceGroup.() -> Unit): DeviceGroup =
     registerDeviceGroup(name.parseAsName(), block)

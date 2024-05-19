@@ -3,13 +3,13 @@ package space.kscience.controls.manager
 import kotlinx.coroutines.launch
 import space.kscience.controls.api.Device
 import space.kscience.controls.api.DeviceHub
-import space.kscience.controls.api.getOrNull
 import space.kscience.controls.api.id
 import space.kscience.dataforge.context.*
 import space.kscience.dataforge.meta.Meta
 import space.kscience.dataforge.meta.MutableMeta
 import space.kscience.dataforge.names.Name
-import space.kscience.dataforge.names.NameToken
+import space.kscience.dataforge.names.get
+import space.kscience.dataforge.names.parseAsName
 import kotlin.collections.set
 import kotlin.properties.ReadOnlyProperty
 
@@ -22,11 +22,11 @@ public class DeviceManager : AbstractPlugin(), DeviceHub {
     /**
      * Actual list of connected devices
      */
-    private val top = HashMap<NameToken, Device>()
-    override val devices: Map<NameToken, Device> get() = top
+    private val _devices = HashMap<Name, Device>()
+    override val devices: Map<Name, Device> get() = _devices
 
-    public fun registerDevice(name: NameToken, device: Device) {
-        top[name] = device
+    public fun registerDevice(name: Name, device: Device) {
+        _devices[name] = device
     }
 
     override fun content(target: String): Map<Name, Any> = super<DeviceHub>.content(target)
@@ -39,7 +39,7 @@ public class DeviceManager : AbstractPlugin(), DeviceHub {
 }
 
 public fun <D : Device> DeviceManager.install(name: String, device: D): D {
-    registerDevice(NameToken(name), device)
+    registerDevice(name.parseAsName(), device)
     device.launch {
         device.start()
     }
@@ -69,7 +69,7 @@ public inline fun <D : Device> DeviceManager.installing(
     val meta = Meta(builder)
     return ReadOnlyProperty { _, property ->
         val name = property.name
-        val current = getOrNull(name)
+        val current = devices[name]
         if (current == null) {
             install(name, factory, meta)
         } else if (current.meta != meta) {
