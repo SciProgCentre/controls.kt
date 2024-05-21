@@ -51,9 +51,9 @@ public class DoubleInRangeState(
 /**
  * Create and register a [DoubleInRangeState]
  */
-public fun BindingsContainer.doubleInRangeState(
+public fun StateContainer.doubleInRangeState(
     initialValue: Double,
     range: ClosedFloatingPointRange<Double>,
 ): DoubleInRangeState = DoubleInRangeState(initialValue, range).also {
-    registerBinding(StateBinding(it))
+    registerState(StateBinding(it))
 }

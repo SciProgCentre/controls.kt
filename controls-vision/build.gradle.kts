@@ -12,7 +12,7 @@ kscience {
     useKtor()
     useSerialization()
     useContextReceivers()
-    dependencies {
+    commonMain {
         api(projects.controlsCore)
         api(projects.controlsConstructor)
         api(libs.visionforge.plotly)

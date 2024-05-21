@@ -1,12 +1,14 @@
 package space.kscience.controls.constructor
 
-public abstract class DeviceModel : BindingsContainer {
+import space.kscience.dataforge.context.Context
 
-    private val _bindings: MutableList<Binding> = mutableListOf()
+public abstract class DeviceModel(override val context: Context) : StateContainer {
 
-    override val bindings: List<Binding> get() = _bindings
+    private val _stateDescriptors: MutableList<StateDescriptor> = mutableListOf()
 
-    override fun registerBinding(binding: Binding) {
-        _bindings.add(binding)
+    override val stateDescriptors: List<StateDescriptor> get() = _stateDescriptors
+
+    override fun registerState(stateDescriptor: StateDescriptor) {
+        _stateDescriptors.add(stateDescriptor)
     }
 }

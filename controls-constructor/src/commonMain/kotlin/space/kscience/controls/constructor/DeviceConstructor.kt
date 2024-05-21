@@ -5,12 +5,10 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import space.kscience.controls.api.Device
 import space.kscience.controls.api.PropertyDescriptor
-import space.kscience.controls.manager.ClockManager
 import space.kscience.controls.spec.DevicePropertySpec
 import space.kscience.controls.spec.MutableDevicePropertySpec
 import space.kscience.dataforge.context.Context
 import space.kscience.dataforge.context.Factory
-import space.kscience.dataforge.context.request
 import space.kscience.dataforge.meta.Meta
 import space.kscience.dataforge.meta.MetaConverter
 import space.kscience.dataforge.names.Name
@@ -26,24 +24,18 @@ import kotlin.time.Duration
 public abstract class DeviceConstructor(
     context: Context,
     meta: Meta = Meta.EMPTY,
-) : DeviceGroup(context, meta), BindingsContainer {
-    private val _bindings: MutableList<Binding> = mutableListOf()
-    override val bindings: List<Binding> get() = _bindings
+) : DeviceGroup(context, meta), StateContainer {
+    private val _stateDescriptors: MutableList<StateDescriptor> = mutableListOf()
+    override val stateDescriptors: List<StateDescriptor> get() = _stateDescriptors
 
-    override fun registerBinding(binding: Binding) {
-        _bindings.add(binding)
+    override fun registerState(stateDescriptor: StateDescriptor) {
+        _stateDescriptors.add(stateDescriptor)
     }
 
     override fun registerProperty(descriptor: PropertyDescriptor, state: DeviceState<*>) {
         super.registerProperty(descriptor, state)
-        registerBinding(PropertyBinding(this, descriptor.name, state))
+        registerState(PropertyStateDescriptor(this, descriptor.name, state))
     }
-
-    /**
-     * Create and register a timer. Timer is not counted as a device property.
-     */
-    public fun timer(tick: Duration): TimerState = TimerState(context.request(ClockManager), tick)
-        .also { registerBinding(StateBinding(it)) }
 
     /**
      * Bind an action to a [DeviceState]. [onChange] block is performed on each state change
@@ -55,7 +47,7 @@ public abstract class DeviceConstructor(
         reads: Collection<DeviceState<*>>,
         onChange: suspend (T) -> Unit,
     ): Job = valueFlow.onEach(onChange).launchIn(this@DeviceConstructor).also {
-        registerBinding(ActionBinding(setOf(this, *reads.toTypedArray()), setOf(*writes)))
+        registerState(ConnectionStateDescriptor(setOf(this, *reads.toTypedArray()), setOf(*writes)))
     }
 }
 
