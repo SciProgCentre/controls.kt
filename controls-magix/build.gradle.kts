@@ -17,6 +17,7 @@ kscience {
     useSerialization {
         json()
     }
+
     commonMain {
         api(projects.magix.magixApi)
         api(projects.controlsCore)
@@ -25,6 +26,11 @@ kscience {
 
     jvmTest{
         implementation(spclibs.logback.classic)
+        implementation(projects.magix.magixServer)
+        implementation(projects.magix.magixRsocket)
+        implementation(spclibs.ktor.server.cio)
+        implementation(spclibs.ktor.server.websockets)
+        implementation(spclibs.ktor.client.cio)
     }
 }
 

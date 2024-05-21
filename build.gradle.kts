@@ -7,7 +7,7 @@ plugins {
 
 allprojects {
     group = "space.kscience"
-    version = "0.4.0-dev-2"
+    version = "0.4.0-dev-3"
     repositories{
         maven("https://maven.pkg.jetbrains.space/spc/p/sci/dev")
     }

@@ -59,9 +59,12 @@ public class RSocketMagixFlowPlugin(
             RSocketRequestHandler(coroutineScope.coroutineContext) {
                 //handler for request/stream
                 requestStream { request: Payload ->
-                    val filter = MagixEndpoint.magixJson.decodeFromString(
+                    val requestText = request.data.readText()
+                    val filter = if(requestText.isBlank()) {
+                        MagixMessageFilter.ALL
+                    } else  MagixEndpoint.magixJson.decodeFromString(
                         MagixMessageFilter.serializer(),
-                        request.data.readText()
+                        requestText
                     )
 
                     receive.filter(filter).map { message ->
@@ -89,12 +92,12 @@ public class RSocketMagixFlowPlugin(
                         )
                     }.launchIn(this)
 
-                    val filterText = request.use { it.data.readText() }
+                    val filterText = request.data.readText()
 
-                    val filter = if (filterText.isNotBlank()) {
-                        MagixEndpoint.magixJson.decodeFromString(MagixMessageFilter.serializer(), filterText)
+                    val filter = if (filterText.isBlank()) {
+                        MagixMessageFilter.ALL
                     } else {
-                        MagixMessageFilter()
+                        MagixEndpoint.magixJson.decodeFromString(MagixMessageFilter.serializer(), filterText)
                     }
 
                     receive.filter(filter).map { message ->

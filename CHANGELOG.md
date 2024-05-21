@@ -19,6 +19,7 @@
 ### Removed
 
 ### Fixed
+- Fix a problem with rsocket endpoint with no filter.
 
 ### Security
 
