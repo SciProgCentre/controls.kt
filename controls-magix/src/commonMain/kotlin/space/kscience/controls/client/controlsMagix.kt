@@ -40,7 +40,7 @@ internal fun generateId(request: MagixMessage): String = if (request.id != null)
  */
 public fun DeviceManager.launchMagixService(
     endpoint: MagixEndpoint,
-    endpointID: String = controlsMagixFormat.defaultFormat,
+    endpointID: String,
     coroutineContext: CoroutineContext = EmptyCoroutineContext,
 ): Job = context.launch(coroutineContext) {
     endpoint.subscribe(controlsMagixFormat, targetFilter = listOf(endpointID, null)).onEach { (request, payload) ->
