@@ -1,3 +1,4 @@
+import org.jetbrains.compose.ExperimentalComposeLibrary
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.ExplicitApiMode
 
@@ -11,12 +12,15 @@ kscience {
         withJava()
     }
     useKtor()
+    useSerialization()
     useContextReceivers()
-    dependencies {
-        api(projects.controlsVision)
+    commonMain {
+        implementation(projects.controlsVision)
+        implementation(projects.controlsConstructor)
+//        implementation("io.github.koalaplot:koalaplot-core:0.6.0")
     }
     jvmMain {
-        implementation("io.ktor:ktor-server-cio")
+//        implementation("io.ktor:ktor-server-cio")
         implementation(spclibs.logback.classic)
     }
 }
@@ -26,6 +30,8 @@ kotlin {
         jvmMain {
             dependencies {
                 implementation(compose.desktop.currentOs)
+                @OptIn(ExperimentalComposeLibrary::class)
+                implementation(compose.desktop.components.splitPane)
             }
         }
     }

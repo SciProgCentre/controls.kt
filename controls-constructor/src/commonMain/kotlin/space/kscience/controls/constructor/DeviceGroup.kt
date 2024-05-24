@@ -1,14 +1,12 @@
 package space.kscience.controls.constructor
 
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.*
 import space.kscience.controls.api.*
 import space.kscience.controls.api.DeviceLifecycleState.*
 import space.kscience.controls.manager.DeviceManager
 import space.kscience.controls.manager.install
+import space.kscience.controls.spec.DevicePropertySpec
 import space.kscience.dataforge.context.*
 import space.kscience.dataforge.meta.Laminate
 import space.kscience.dataforge.meta.Meta
@@ -30,12 +28,21 @@ public open class DeviceGroup(
     override val meta: Meta,
 ) : DeviceHub, CachingDevice {
 
-    internal class Property(
-        val state: DeviceState<*>,
+    private class Property<T>(
+        val state: DeviceState<T>,
+        val converter: MetaConverter<T>,
         val descriptor: PropertyDescriptor,
-    )
+    ) {
+        val valueAsMeta get() = converter.convert(state.value)
 
-    internal class Action(
+        fun setMeta(meta: Meta) {
+            check(state is MutableDeviceState) { "Can't write to read-only property" }
+
+            state.value = converter.read(meta)
+        }
+    }
+
+    private class Action(
         val invoke: suspend (Meta?) -> Meta?,
         val descriptor: ActionDescriptor,
     )
@@ -81,16 +88,20 @@ public open class DeviceGroup(
         return device
     }
 
-    private val properties: MutableMap<Name, Property> = hashMapOf()
+    private val properties: MutableMap<Name, Property<*>> = hashMapOf()
 
     /**
      * Register a new property based on [DeviceState]. Properties could be modified dynamically
      */
-    public open fun registerProperty(descriptor: PropertyDescriptor, state: DeviceState<*>) {
+    public open fun <T> registerProperty(
+        converter: MetaConverter<T>,
+        descriptor: PropertyDescriptor,
+        state: DeviceState<T>,
+    ) {
         val name = descriptor.name.parseAsName()
         require(properties[name] == null) { "Can't add property with name $name. It already exists." }
-        properties[name] = Property(state, descriptor)
-        state.metaFlow.onEach {
+        properties[name] = Property(state, converter, descriptor)
+        state.valueFlow.map(converter::convert).onEach {
             sharedMessageFlow.emit(
                 PropertyChangedMessage(
                     descriptor.name,
@@ -109,19 +120,18 @@ public open class DeviceGroup(
         get() = actions.values.map { it.descriptor }
 
     override suspend fun readProperty(propertyName: String): Meta =
-        properties[propertyName.parseAsName()]?.state?.valueAsMeta
+        properties[propertyName.parseAsName()]?.valueAsMeta
             ?: error("Property with name $propertyName not found")
 
-    override fun getProperty(propertyName: String): Meta? = properties[propertyName.parseAsName()]?.state?.valueAsMeta
+    override fun getProperty(propertyName: String): Meta? = properties[propertyName.parseAsName()]?.valueAsMeta
 
     override suspend fun invalidate(propertyName: String) {
         //does nothing for this implementation
     }
 
     override suspend fun writeProperty(propertyName: String, value: Meta) {
-        val property = (properties[propertyName.parseAsName()]?.state as? MutableDeviceState)
-            ?: error("Property with name $propertyName not found")
-        property.valueAsMeta = value
+        val property = properties[propertyName.parseAsName()] ?: error("Property with name $propertyName not found")
+        property.setMeta(value)
     }
 
 
@@ -162,6 +172,10 @@ public open class DeviceGroup(
     public companion object {
 
     }
+}
+
+public fun <T> DeviceGroup.registerProperty(propertySpec: DevicePropertySpec<*, T>, state: DeviceState<T>) {
+    registerProperty(propertySpec.converter, propertySpec.descriptor, state)
 }
 
 public fun DeviceManager.registerDeviceGroup(
@@ -234,10 +248,12 @@ public fun DeviceGroup.registerDeviceGroup(name: String, block: DeviceGroup.() -
  */
 public fun <T : Any> DeviceGroup.registerProperty(
     name: String,
+    converter: MetaConverter<T>,
     state: DeviceState<T>,
     descriptorBuilder: PropertyDescriptor.() -> Unit = {},
 ) {
     registerProperty(
+        converter,
         PropertyDescriptor(name).apply(descriptorBuilder),
         state
     )
@@ -248,10 +264,12 @@ public fun <T : Any> DeviceGroup.registerProperty(
  */
 public fun <T : Any> DeviceGroup.registerMutableProperty(
     name: String,
+    converter: MetaConverter<T>,
     state: MutableDeviceState<T>,
     descriptorBuilder: PropertyDescriptor.() -> Unit = {},
 ) {
     registerProperty(
+        converter,
         PropertyDescriptor(name).apply(descriptorBuilder),
         state
     )
@@ -269,7 +287,7 @@ public fun <T : Any> DeviceGroup.registerVirtualProperty(
     descriptorBuilder: PropertyDescriptor.() -> Unit = {},
     callback: (T) -> Unit = {},
 ): MutableDeviceState<T> {
-    val state = DeviceState.internal<T>(converter, initialValue, callback)
-    registerMutableProperty(name, state, descriptorBuilder)
+    val state = MutableDeviceState<T>(initialValue, callback)
+    registerMutableProperty(name, converter, state, descriptorBuilder)
     return state
 }

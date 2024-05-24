@@ -16,8 +16,6 @@ import space.kscience.dataforge.context.Context
 import space.kscience.dataforge.meta.Meta
 import space.kscience.dataforge.misc.DFExperimental
 import space.kscience.dataforge.names.Name
-import space.kscience.dataforge.names.length
-import space.kscience.dataforge.names.startsWith
 import space.kscience.magix.api.MagixEndpoint
 import space.kscience.magix.api.send
 import space.kscience.magix.api.subscribe
@@ -121,12 +119,18 @@ public suspend fun MagixEndpoint.remoteDevice(
     deviceEndpoint: String,
     deviceName: Name,
 ): DeviceClient = coroutineScope {
-    val subscription = subscribe(DeviceManager.magixFormat, originFilter = listOf(deviceEndpoint)).map { it.second }
+    val subscription = subscribe(DeviceManager.magixFormat, originFilter = listOf(deviceEndpoint))
+        .map { it.second }
+        .filter {
+            it.sourceDevice == null || it.sourceDevice == deviceName
+        }
 
     val deferredDescriptorMessage = CompletableDeferred<DescriptionMessage>()
 
     launch {
-        deferredDescriptorMessage.complete(subscription.filterIsInstance<DescriptionMessage>().first())
+        deferredDescriptorMessage.complete(
+            subscription.filterIsInstance<DescriptionMessage>().first()
+        )
     }
 
     send(
@@ -155,12 +159,6 @@ public suspend fun MagixEndpoint.remoteDevice(
             id = stringUID()
         )
     }
-}
-
-private class MapBasedDeviceHub(val deviceMap: Map<Name, Device>, val prefix: Name) : DeviceHub {
-    override val devices: Map<Name, Device>
-        get() = deviceMap.filterKeys { name: Name -> name == prefix || (name.startsWith(prefix) && name.length == prefix.length + 1) }
-
 }
 
 /**

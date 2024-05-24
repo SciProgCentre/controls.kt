@@ -64,7 +64,7 @@ class VirtualCarController : Controller(), ContextAware {
             //mongoStorageJob = deviceManager.storeMessages(DefaultAsynchronousMongoClientFactory)
             //Launch device client and connect it to the server
             val deviceEndpoint = MagixEndpoint.rSocketWithTcp("localhost")
-            deviceManager.launchMagixService(deviceEndpoint)
+            deviceManager.launchMagixService(deviceEndpoint, "car")
         }
     }
 

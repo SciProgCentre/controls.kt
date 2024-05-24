@@ -7,8 +7,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 import space.kscience.controls.manager.ClockManager
-import space.kscience.controls.spec.instant
-import space.kscience.dataforge.meta.MetaConverter
 import kotlin.time.Duration
 
 /**
@@ -23,7 +21,6 @@ public class TimerState(
     public val clockManager: ClockManager,
     public val tick: Duration,
 ) : DeviceState<Instant> {
-    override val converter: MetaConverter<Instant> get() = MetaConverter.instant
 
     private val clock = MutableStateFlow(clockManager.clock.now())
 

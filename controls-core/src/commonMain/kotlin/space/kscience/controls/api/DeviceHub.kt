@@ -22,6 +22,7 @@ public interface DeviceHub : Provider {
     } else {
         emptyMap()
     }
+    //TODO send message on device change
 
     public companion object
 }

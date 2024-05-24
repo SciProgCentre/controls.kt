@@ -15,7 +15,7 @@ import space.kscience.dataforge.meta.MetaConverter
  * A copy-free [DeviceState] bound to a device property
  */
 private open class BoundDeviceState<T>(
-    override val converter: MetaConverter<T>,
+    val converter: MetaConverter<T>,
     val device: Device,
     val propertyName: String,
     initialValue: T,

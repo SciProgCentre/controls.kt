@@ -13,6 +13,7 @@ public expect class ControlVisionPlugin: VisionPlugin{
 
 internal val controlsVisionSerializersModule = SerializersModule {
     polymorphic(Vision::class) {
-        subclass(BooleanIndicatorVision.serializer())
+        subclass(IndicatorVision.serializer())
+        subclass(SliderVision.serializer())
     }
 }

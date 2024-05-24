@@ -6,15 +6,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
-import space.kscience.dataforge.meta.Meta
-import space.kscience.dataforge.meta.MetaConverter
 import kotlin.reflect.KProperty
 
 /**
  * An observable state of a device
  */
 public interface DeviceState<T> {
-    public val converter: MetaConverter<T>
     public val value: T
 
     public val valueFlow: Flow<T>
@@ -24,9 +21,6 @@ public interface DeviceState<T> {
     public companion object
 }
 
-public val <T> DeviceState<T>.metaFlow: Flow<Meta> get() = valueFlow.map(converter::convert)
-
-public val <T> DeviceState<T>.valueAsMeta: Meta get() = converter.convert(value)
 
 public operator fun <T> DeviceState<T>.getValue(thisRef: Any?, property: KProperty<*>): T = value
 
@@ -47,12 +41,6 @@ public operator fun <T> MutableDeviceState<T>.setValue(thisRef: Any?, property: 
     this.value = value
 }
 
-public var <T> MutableDeviceState<T>.valueAsMeta: Meta
-    get() = converter.convert(value)
-    set(arg) {
-        value = converter.read(arg)
-    }
-
 /**
  * Device state with a value that depends on other device states
  */
@@ -65,17 +53,15 @@ public interface DeviceStateWithDependencies<T> : DeviceState<T> {
  */
 public fun <T, R> DeviceState.Companion.map(
     state: DeviceState<T>,
-    converter: MetaConverter<R>, mapper: (T) -> R,
+    mapper: (T) -> R,
 ): DeviceStateWithDependencies<R> = object : DeviceStateWithDependencies<R> {
     override val dependencies = listOf(state)
-
-    override val converter: MetaConverter<R> = converter
 
     override val value: R get() = mapper(state.value)
 
     override val valueFlow: Flow<R> = state.valueFlow.map(mapper)
 
-    override fun toString(): String = "DeviceState.map(arg=${state}, converter=$converter)"
+    override fun toString(): String = "DeviceState.map(arg=${state})"
 }
 
 /**
@@ -84,12 +70,9 @@ public fun <T, R> DeviceState.Companion.map(
 public fun <T1, T2, R> DeviceState.Companion.combine(
     state1: DeviceState<T1>,
     state2: DeviceState<T2>,
-    converter: MetaConverter<R>,
     mapper: (T1, T2) -> R,
 ): DeviceStateWithDependencies<R> = object : DeviceStateWithDependencies<R> {
     override val dependencies = listOf(state1, state2)
-
-    override val converter: MetaConverter<R> = converter
 
     override val value: R get() = mapper(state1.value, state2.value)
 

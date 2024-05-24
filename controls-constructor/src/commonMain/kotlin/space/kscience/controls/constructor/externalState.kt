@@ -4,13 +4,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import space.kscience.dataforge.meta.MetaConverter
 import kotlin.time.Duration
 
 
 private open class ExternalState<T>(
     val scope: CoroutineScope,
-    override val converter: MetaConverter<T>,
     val readInterval: Duration,
     initialValue: T,
     val reader: suspend () -> T,
@@ -26,7 +24,7 @@ private open class ExternalState<T>(
     override val value: T get() = flow.value
     override val valueFlow: Flow<T> get() = flow
 
-    override fun toString(): String  = "ExternalState(converter=$converter)"
+    override fun toString(): String  = "ExternalState()"
 }
 
 /**
@@ -34,20 +32,18 @@ private open class ExternalState<T>(
  */
 public fun <T> DeviceState.Companion.external(
     scope: CoroutineScope,
-    converter: MetaConverter<T>,
     readInterval: Duration,
     initialValue: T,
     reader: suspend () -> T,
-): DeviceState<T> = ExternalState(scope, converter, readInterval, initialValue, reader)
+): DeviceState<T> = ExternalState(scope,  readInterval, initialValue, reader)
 
 private class MutableExternalState<T>(
     scope: CoroutineScope,
-    converter: MetaConverter<T>,
     readInterval: Duration,
     initialValue: T,
     reader: suspend () -> T,
     val writer: suspend (T) -> Unit,
-) : ExternalState<T>(scope, converter, readInterval, initialValue, reader), MutableDeviceState<T> {
+) : ExternalState<T>(scope, readInterval, initialValue, reader), MutableDeviceState<T> {
     override var value: T
         get() = super.value
         set(value) {
@@ -62,9 +58,8 @@ private class MutableExternalState<T>(
  */
 public fun <T> DeviceState.Companion.external(
     scope: CoroutineScope,
-    converter: MetaConverter<T>,
     readInterval: Duration,
     initialValue: T,
     reader: suspend () -> T,
     writer: suspend (T) -> Unit,
-): MutableDeviceState<T> = MutableExternalState(scope, converter, readInterval, initialValue, reader, writer)
+): MutableDeviceState<T> = MutableExternalState(scope, readInterval, initialValue, reader, writer)

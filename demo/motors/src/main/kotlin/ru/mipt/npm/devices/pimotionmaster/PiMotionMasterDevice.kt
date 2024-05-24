@@ -12,6 +12,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeout
 import space.kscience.controls.api.DeviceHub
 import space.kscience.controls.api.PropertyDescriptor
+import space.kscience.controls.misc.asMeta
+import space.kscience.controls.misc.duration
 import space.kscience.controls.ports.AsynchronousPort
 import space.kscience.controls.ports.KtorTcpPort
 import space.kscience.controls.ports.send

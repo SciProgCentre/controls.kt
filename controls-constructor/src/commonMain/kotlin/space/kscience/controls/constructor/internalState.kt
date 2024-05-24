@@ -2,7 +2,6 @@ package space.kscience.controls.constructor
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import space.kscience.dataforge.meta.MetaConverter
 
 /**
  * A [MutableDeviceState] that does not correspond to a physical state
@@ -10,7 +9,6 @@ import space.kscience.dataforge.meta.MetaConverter
  * @param callback a synchronous callback that could be used without a scope
  */
 private class VirtualDeviceState<T>(
-    override val converter: MetaConverter<T>,
     initialValue: T,
     private val callback: (T) -> Unit = {},
 ) : MutableDeviceState<T> {
@@ -24,7 +22,7 @@ private class VirtualDeviceState<T>(
             callback(value)
         }
 
-    override fun toString(): String = "VirtualDeviceState(converter=$converter)"
+    override fun toString(): String = "VirtualDeviceState()"
 }
 
 
@@ -33,8 +31,7 @@ private class VirtualDeviceState<T>(
  *
  * @param callback a synchronous callback that could be used without a scope
  */
-public fun <T> DeviceState.Companion.internal(
-    converter: MetaConverter<T>,
+public fun <T> MutableDeviceState(
     initialValue: T,
     callback: (T) -> Unit = {},
-): MutableDeviceState<T> = VirtualDeviceState(converter, initialValue, callback)
+): MutableDeviceState<T> = VirtualDeviceState(initialValue, callback)

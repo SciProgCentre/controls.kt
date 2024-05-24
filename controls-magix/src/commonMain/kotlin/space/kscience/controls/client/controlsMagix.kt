@@ -1,6 +1,7 @@
 package space.kscience.controls.client
 
 import com.benasher44.uuid.uuid4
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
@@ -56,7 +57,7 @@ public fun DeviceManager.launchMagixService(
             )
         }
     }.catch { error ->
-        logger.error(error) { "Error while responding to message: ${error.message}" }
+        if (error !is CancellationException) logger.error(error) { "Error while responding to message: ${error.message}" }
     }.launchIn(this)
 
     hubMessageFlow().onEach { payload ->

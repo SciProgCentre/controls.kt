@@ -2,7 +2,6 @@ package space.kscience.controls.constructor
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import space.kscience.dataforge.meta.MetaConverter
 
 
 /**
@@ -17,7 +16,6 @@ public class DoubleInRangeState(
         require(initialValue in range) { "Initial value should be in range" }
     }
 
-    override val converter: MetaConverter<Double> = MetaConverter.double
 
     private val _valueFlow = MutableStateFlow(initialValue)
 
@@ -32,18 +30,18 @@ public class DoubleInRangeState(
     /**
      * A state showing that the range is on its lower boundary
      */
-    public val atStart: DeviceState<Boolean> = DeviceState.map(this, MetaConverter.boolean) {
+    public val atStart: DeviceState<Boolean> = DeviceState.map(this) {
         it <= range.start
     }
 
     /**
      * A state showing that the range is on its higher boundary
      */
-    public val atEnd: DeviceState<Boolean> = DeviceState.map(this, MetaConverter.boolean) {
+    public val atEnd: DeviceState<Boolean> = DeviceState.map(this) {
         it >= range.endInclusive
     }
 
-    override fun toString(): String = "DoubleRangeState(range=$range, converter=$converter)"
+    override fun toString(): String = "DoubleRangeState(range=$range)"
 
 
 }
@@ -55,5 +53,5 @@ public fun StateContainer.doubleInRangeState(
     initialValue: Double,
     range: ClosedFloatingPointRange<Double>,
 ): DoubleInRangeState = DoubleInRangeState(initialValue, range).also {
-    registerState(StateBinding(it))
+    registerState(StateNodeDescriptor(it))
 }

@@ -1,4 +1,4 @@
-package space.kscience.controls.spec
+package space.kscience.controls.misc
 
 import kotlinx.datetime.Instant
 import space.kscience.dataforge.meta.*
@@ -12,9 +12,9 @@ public fun Double.asMeta(): Meta = Meta(asValue())
  * Generate a nullable [MetaConverter] from non-nullable one
  */
 public fun <T : Any> MetaConverter<T>.nullable(): MetaConverter<T?> = object : MetaConverter<T?> {
-    override fun convert(obj: T?): Meta  = obj?.let { this@nullable.convert(it) }?: Meta(Null)
+    override fun convert(obj: T?): Meta = obj?.let { this@nullable.convert(it) } ?: Meta(Null)
 
-    override fun readOrNull(source: Meta): T? = if(source.value == Null) null else this@nullable.readOrNull(source)
+    override fun readOrNull(source: Meta): T? = if (source.value == Null) null else this@nullable.readOrNull(source)
 
 }
 
@@ -39,3 +39,15 @@ private object InstantConverter : MetaConverter<Instant> {
 }
 
 public val MetaConverter.Companion.instant: MetaConverter<Instant> get() = InstantConverter
+
+private object DoubleRangeConverter : MetaConverter<ClosedFloatingPointRange<Double>> {
+    override fun readOrNull(source: Meta): ClosedFloatingPointRange<Double>? = source.value?.doubleArray?.let { (start, end)->
+        start..end
+    }
+
+    override fun convert(
+        obj: ClosedFloatingPointRange<Double>,
+    ): Meta = Meta(doubleArrayOf(obj.start, obj.endInclusive).asValue())
+}
+
+public val MetaConverter.Companion.doubleRange: MetaConverter<ClosedFloatingPointRange<Double>> get() = DoubleRangeConverter

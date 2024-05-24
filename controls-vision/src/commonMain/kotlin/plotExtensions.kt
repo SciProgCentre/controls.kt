@@ -145,7 +145,7 @@ private fun <T> Trace.updateFromState(
 public fun <T> Plot.plotDeviceState(
     context: Context,
     state: DeviceState<T>,
-    extractValue: T.() -> Value = { state.converter.convert(this).value ?: Null },
+    extractValue: (T) -> Value = { Value.of(it) },
     maxAge: Duration = defaultMaxAge,
     maxPoints: Int = defaultMaxPoints,
     minPoints: Int = defaultMinPoints,

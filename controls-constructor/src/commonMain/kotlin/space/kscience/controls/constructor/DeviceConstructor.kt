@@ -1,8 +1,5 @@
 package space.kscience.controls.constructor
 
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import space.kscience.controls.api.Device
 import space.kscience.controls.api.PropertyDescriptor
 import space.kscience.controls.spec.DevicePropertySpec
@@ -25,29 +22,24 @@ public abstract class DeviceConstructor(
     context: Context,
     meta: Meta = Meta.EMPTY,
 ) : DeviceGroup(context, meta), StateContainer {
-    private val _stateDescriptors: MutableList<StateDescriptor> = mutableListOf()
-    override val stateDescriptors: List<StateDescriptor> get() = _stateDescriptors
+    private val _stateDescriptors: MutableSet<StateDescriptor> = mutableSetOf()
+    override val stateDescriptors: Set<StateDescriptor> get() = _stateDescriptors
 
     override fun registerState(stateDescriptor: StateDescriptor) {
         _stateDescriptors.add(stateDescriptor)
     }
 
-    override fun registerProperty(descriptor: PropertyDescriptor, state: DeviceState<*>) {
-        super.registerProperty(descriptor, state)
-        registerState(PropertyStateDescriptor(this, descriptor.name, state))
+    override fun unregisterState(stateDescriptor: StateDescriptor) {
+        _stateDescriptors.remove(stateDescriptor)
     }
 
-    /**
-     * Bind an action to a [DeviceState]. [onChange] block is performed on each state change
-     *
-     * Optionally provide [writes] - a set of states that this change affects.
-     */
-    public fun <T> DeviceState<T>.onChange(
-        vararg writes: DeviceState<*>,
-        reads: Collection<DeviceState<*>>,
-        onChange: suspend (T) -> Unit,
-    ): Job = valueFlow.onEach(onChange).launchIn(this@DeviceConstructor).also {
-        registerState(ConnectionStateDescriptor(setOf(this, *reads.toTypedArray()), setOf(*writes)))
+    override fun <T> registerProperty(
+        converter: MetaConverter<T>,
+        descriptor: PropertyDescriptor,
+        state: DeviceState<T>,
+    ) {
+        super.registerProperty(converter, descriptor, state)
+        registerState(StatePropertyDescriptor(this, descriptor.name, state))
     }
 }
 
@@ -84,6 +76,7 @@ public fun <D : Device> DeviceConstructor.device(
  * Register a property and provide a direct reader for it
  */
 public fun <T, S : DeviceState<T>> DeviceConstructor.property(
+    converter: MetaConverter<T>,
     state: S,
     descriptorBuilder: PropertyDescriptor.() -> Unit = {},
     nameOverride: String? = null,
@@ -91,7 +84,7 @@ public fun <T, S : DeviceState<T>> DeviceConstructor.property(
     PropertyDelegateProvider { _: DeviceConstructor, property ->
         val name = nameOverride ?: property.name
         val descriptor = PropertyDescriptor(name).apply(descriptorBuilder)
-        registerProperty(descriptor, state)
+        registerProperty(converter, descriptor, state)
         ReadOnlyProperty { _: DeviceConstructor, _ ->
             state
         }
@@ -108,7 +101,8 @@ public fun <T : Any> DeviceConstructor.property(
     descriptorBuilder: PropertyDescriptor.() -> Unit = {},
     nameOverride: String? = null,
 ): PropertyDelegateProvider<DeviceConstructor, ReadOnlyProperty<DeviceConstructor, DeviceState<T>>> = property(
-    DeviceState.external(this, metaConverter, readInterval, initialState, reader),
+    metaConverter,
+    DeviceState.external(this, readInterval, initialState, reader),
     descriptorBuilder,
     nameOverride,
 )
@@ -125,7 +119,8 @@ public fun <T : Any> DeviceConstructor.mutableProperty(
     descriptorBuilder: PropertyDescriptor.() -> Unit = {},
     nameOverride: String? = null,
 ): PropertyDelegateProvider<DeviceConstructor, ReadOnlyProperty<DeviceConstructor, MutableDeviceState<T>>> = property(
-    DeviceState.external(this, metaConverter, readInterval, initialState, reader, writer),
+    metaConverter,
+    DeviceState.external(this, readInterval, initialState, reader, writer),
     descriptorBuilder,
     nameOverride,
 )
@@ -140,7 +135,8 @@ public fun <T> DeviceConstructor.virtualProperty(
     nameOverride: String? = null,
     callback: (T) -> Unit = {},
 ): PropertyDelegateProvider<DeviceConstructor, ReadOnlyProperty<DeviceConstructor, MutableDeviceState<T>>> = property(
-    DeviceState.internal(metaConverter, initialState, callback),
+    metaConverter,
+    MutableDeviceState(initialState, callback),
     descriptorBuilder,
     nameOverride,
 )
@@ -153,7 +149,7 @@ public fun <T, D : Device> DeviceConstructor.deviceProperty(
     property: DevicePropertySpec<D, T>,
     initialValue: T,
 ): PropertyDelegateProvider<DeviceConstructor, ReadOnlyProperty<DeviceConstructor, DeviceState<T>>> =
-    property(device.propertyAsState(property, initialValue))
+    property(property.converter, device.propertyAsState(property, initialValue))
 
 /**
  * Bind existing property provided by specification to this device
@@ -163,4 +159,4 @@ public fun <T, D : Device> DeviceConstructor.deviceProperty(
     property: MutableDevicePropertySpec<D, T>,
     initialValue: T,
 ): PropertyDelegateProvider<DeviceConstructor, ReadOnlyProperty<DeviceConstructor, MutableDeviceState<T>>> =
-    property(device.mutablePropertyAsState(property, initialValue))
+    property(property.converter, device.mutablePropertyAsState(property, initialValue))
