@@ -1,11 +1,11 @@
 package space.kscience.controls.ports
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.takeWhile
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.io.Buffer
+import kotlinx.io.Source
 import kotlinx.io.readByteArray
 import space.kscience.dataforge.context.Context
 import space.kscience.dataforge.context.ContextAware
@@ -43,6 +43,24 @@ public interface SynchronousPort : ContextAware, AutoCloseable {
             buffer.write(it)
         }
         buffer.readByteArray(responseSize)
+    }
+}
+
+/**
+ * Read response to a given message using [Source] abstraction
+ */
+public suspend fun <R> SynchronousPort.respondAsSource(
+    request: ByteArray,
+    transform: suspend Source.() -> R,
+): R = respond(request) {
+    //suspend until the response is fully read
+    coroutineScope {
+        val buffer = Buffer()
+        val collectJob = onEach { buffer.write(it) }.launchIn(this)
+        val res = transform(buffer)
+        //cancel collection when the result is achieved
+        collectJob.cancel()
+        res
     }
 }
 

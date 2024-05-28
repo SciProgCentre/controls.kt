@@ -13,6 +13,7 @@
 - Refactored ports. Now we have `AsynchronousPort` as well as `SynchronousPort`
 - `DeviceClient` now initializes property and action descriptors eagerly.
 - `DeviceHub` now works with `Name` instead of `NameToken`. Tree-like structure is made using `Path`. Device messages no longer have access to sub-devices.
+- Add some utility methods to ports. Synchronous port response could be now consumed as `Source`.
 
 ### Deprecated
 

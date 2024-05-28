@@ -3,10 +3,7 @@ package space.kscience.controls.ports
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.io.Buffer
 import kotlinx.io.Source
 import space.kscience.controls.api.AsynchronousSocket
 import space.kscience.dataforge.context.*
@@ -26,15 +23,7 @@ public interface AsynchronousPort : ContextAware, AsynchronousSocket<ByteArray>
  * [scope] controls the consummation.
  * If the scope is canceled, the source stops producing.
  */
-public fun AsynchronousPort.receiveAsSource(scope: CoroutineScope): Source {
-    val buffer = Buffer()
-
-    subscribe().onEach {
-        buffer.write(it)
-    }.launchIn(scope)
-
-    return buffer
-}
+public fun AsynchronousPort.receiveAsSource(scope: CoroutineScope): Source = subscribe().consumeAsSource(scope)
 
 
 /**
@@ -51,13 +40,13 @@ public abstract class AbstractAsynchronousPort(
         CoroutineScope(
             coroutineContext +
                     SupervisorJob(coroutineContext[Job]) +
-                    CoroutineExceptionHandler { _, throwable -> logger.error(throwable) { throwable.stackTraceToString() } } +
+                    CoroutineExceptionHandler { _, throwable -> logger.error(throwable) { "Asynchronous port error: " + throwable.stackTraceToString() } } +
                     CoroutineName(toString())
         )
     }
 
-    private val outgoing = Channel<ByteArray>(meta["outgoing.capacity"].int?:100)
-    private val incoming = Channel<ByteArray>(meta["incoming.capacity"].int?:100)
+    private val outgoing = Channel<ByteArray>(meta["outgoing.capacity"].int ?: 100)
+    private val incoming = Channel<ByteArray>(meta["incoming.capacity"].int ?: 100)
 
     /**
      * Internal method to synchronously send data
@@ -100,7 +89,7 @@ public abstract class AbstractAsynchronousPort(
      * Send a data packet via the port
      */
     override suspend fun send(data: ByteArray) {
-        check(isOpen){"The port is not opened"}
+        check(isOpen) { "The port is not opened" }
         outgoing.send(data)
     }
 
@@ -117,7 +106,7 @@ public abstract class AbstractAsynchronousPort(
         sendJob?.cancel()
     }
 
-    override fun toString(): String = meta["name"].string?:"ChannelPort[${hashCode().toString(16)}]"
+    override fun toString(): String = meta["name"].string ?: "ChannelPort[${hashCode().toString(16)}]"
 }
 
 /**
