@@ -6,7 +6,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import space.kscience.controls.api.Device
 import space.kscience.controls.constructor.MutableDeviceState
-import space.kscience.controls.constructor.mutablePropertyAsState
+import space.kscience.controls.constructor.propertyAsState
 import space.kscience.controls.manager.clock
 import space.kscience.controls.spec.*
 import space.kscience.dataforge.context.Context
@@ -98,4 +98,4 @@ public class VirtualDrive(
     }
 }
 
-public suspend fun Drive.stateOfForce(): MutableDeviceState<Double> = mutablePropertyAsState(Drive.force)
+public suspend fun Drive.stateOfForce(): MutableDeviceState<Double> = propertyAsState(Drive.force)

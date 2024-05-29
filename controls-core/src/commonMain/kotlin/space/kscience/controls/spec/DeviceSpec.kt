@@ -1,10 +1,7 @@
 package space.kscience.controls.spec
 
 import kotlinx.coroutines.withContext
-import space.kscience.controls.api.ActionDescriptor
-import space.kscience.controls.api.Device
-import space.kscience.controls.api.PropertyDescriptor
-import space.kscience.controls.api.metaDescriptor
+import space.kscience.controls.api.*
 import space.kscience.dataforge.meta.Meta
 import space.kscience.dataforge.meta.MetaConverter
 import space.kscience.dataforge.meta.descriptors.MetaDescriptor
@@ -159,7 +156,6 @@ public abstract class DeviceSpec<D : Device> {
                 deviceAction
             }
         }
-
 }
 
 /**
@@ -196,3 +192,16 @@ public fun <D : Device> DeviceSpec<D>.metaAction(
         execute(it)
     }
 
+
+/**
+ * Throw an exception if device does not have all properties and actions defined by this specification
+ */
+public fun DeviceSpec<*>.validate(device: Device) {
+    properties.map { it.value.descriptor }.forEach { specProperty ->
+        check(specProperty in device.propertyDescriptors) { "Property ${specProperty.name} not registered in ${device.id}" }
+    }
+
+    actions.map { it.value.descriptor }.forEach { specAction ->
+        check(specAction in device.actionDescriptors) { "Action ${specAction.name} not registered in ${device.id}" }
+    }
+}

@@ -12,6 +12,7 @@ import kotlin.math.roundToLong
 
 @OptIn(InternalCoroutinesApi::class)
 private class CompressedTimeDispatcher(
+    val clockManager: ClockManager,
     val dispatcher: CoroutineDispatcher,
     val compression: Double,
 ) : CoroutineDispatcher(), Delay {
@@ -74,7 +75,7 @@ public class ClockManager : AbstractPlugin() {
     ): CoroutineDispatcher = if (timeCompression == 1.0) {
         dispatcher
     } else {
-        CompressedTimeDispatcher(dispatcher, timeCompression)
+        CompressedTimeDispatcher(this, dispatcher, timeCompression)
     }
 
     public companion object : PluginFactory<ClockManager> {

@@ -3,7 +3,6 @@ package space.kscience.controls.constructor
 import space.kscience.controls.api.Device
 import space.kscience.controls.api.PropertyDescriptor
 import space.kscience.controls.spec.DevicePropertySpec
-import space.kscience.controls.spec.MutableDevicePropertySpec
 import space.kscience.dataforge.context.Context
 import space.kscience.dataforge.context.Factory
 import space.kscience.dataforge.meta.Meta
@@ -22,15 +21,15 @@ public abstract class DeviceConstructor(
     context: Context,
     meta: Meta = Meta.EMPTY,
 ) : DeviceGroup(context, meta), StateContainer {
-    private val _stateDescriptors: MutableSet<StateDescriptor> = mutableSetOf()
-    override val stateDescriptors: Set<StateDescriptor> get() = _stateDescriptors
+    private val _constructorElements: MutableSet<ConstructorElement> = mutableSetOf()
+    override val constructorElements: Set<ConstructorElement> get() = _constructorElements
 
-    override fun registerState(stateDescriptor: StateDescriptor) {
-        _stateDescriptors.add(stateDescriptor)
+    override fun registerElement(constructorElement: ConstructorElement) {
+        _constructorElements.add(constructorElement)
     }
 
-    override fun unregisterState(stateDescriptor: StateDescriptor) {
-        _stateDescriptors.remove(stateDescriptor)
+    override fun unregisterElement(constructorElement: ConstructorElement) {
+        _constructorElements.remove(constructorElement)
     }
 
     override fun <T> registerProperty(
@@ -39,7 +38,7 @@ public abstract class DeviceConstructor(
         state: DeviceState<T>,
     ) {
         super.registerProperty(converter, descriptor, state)
-        registerState(StatePropertyDescriptor(this, descriptor.name, state))
+        registerElement(PropertyConstructorElement(this, descriptor.name, state))
     }
 }
 
@@ -108,7 +107,7 @@ public fun <T : Any> DeviceConstructor.property(
 )
 
 /**
- * Register a mutable external state as a property
+ * Create and register a mutable external state as a property
  */
 public fun <T : Any> DeviceConstructor.mutableProperty(
     metaConverter: MetaConverter<T>,
@@ -141,22 +140,7 @@ public fun <T> DeviceConstructor.virtualProperty(
     nameOverride,
 )
 
-/**
- * Bind existing property provided by specification to this device
- */
-public fun <T, D : Device> DeviceConstructor.deviceProperty(
-    device: D,
-    property: DevicePropertySpec<D, T>,
-    initialValue: T,
-): PropertyDelegateProvider<DeviceConstructor, ReadOnlyProperty<DeviceConstructor, DeviceState<T>>> =
-    property(property.converter, device.propertyAsState(property, initialValue))
-
-/**
- * Bind existing property provided by specification to this device
- */
-public fun <T, D : Device> DeviceConstructor.deviceProperty(
-    device: D,
-    property: MutableDevicePropertySpec<D, T>,
-    initialValue: T,
-): PropertyDelegateProvider<DeviceConstructor, ReadOnlyProperty<DeviceConstructor, MutableDeviceState<T>>> =
-    property(property.converter, device.mutablePropertyAsState(property, initialValue))
+public fun <T, S : DeviceState<T>> DeviceConstructor.property(
+    spec: DevicePropertySpec<*, T>,
+    state: S,
+): Unit = registerProperty(spec.converter, spec.descriptor, state)

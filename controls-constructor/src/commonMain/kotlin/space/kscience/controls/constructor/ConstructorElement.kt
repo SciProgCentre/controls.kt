@@ -2,9 +2,7 @@ package space.kscience.controls.constructor
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.runningFold
+import kotlinx.coroutines.flow.*
 import space.kscience.controls.api.Device
 import space.kscience.controls.manager.ClockManager
 import space.kscience.dataforge.context.ContextAware
@@ -14,34 +12,38 @@ import kotlin.time.Duration
 /**
  * A binding that is used to describe device functionality
  */
-public sealed interface StateDescriptor
+public sealed interface ConstructorElement
 
 /**
  * A binding that exposes device property as read-only state
  */
-public class StatePropertyDescriptor<T>(
+public class PropertyConstructorElement<T>(
     public val device: Device,
     public val propertyName: String,
     public val state: DeviceState<T>,
-) : StateDescriptor
+) : ConstructorElement
 
 /**
  * A binding for independent state like a timer
  */
-public class StateNodeDescriptor<T>(
+public class StateConstructorElement<T>(
     public val state: DeviceState<T>,
-) : StateDescriptor
+) : ConstructorElement
 
-public class StateConnectionDescriptor(
+public class ConnectionConstrucorElement(
     public val reads: Collection<DeviceState<*>>,
     public val writes: Collection<DeviceState<*>>,
-) : StateDescriptor
+) : ConstructorElement
+
+public class ModelConstructorElement(
+    public val model: ConstructorModel
+) : ConstructorElement
 
 
 public interface StateContainer : ContextAware, CoroutineScope {
-    public val stateDescriptors: Set<StateDescriptor>
-    public fun registerState(stateDescriptor: StateDescriptor)
-    public fun unregisterState(stateDescriptor: StateDescriptor)
+    public val constructorElements: Set<ConstructorElement>
+    public fun registerElement(constructorElement: ConstructorElement)
+    public fun unregisterElement(constructorElement: ConstructorElement)
 
 
     /**
@@ -50,16 +52,16 @@ public interface StateContainer : ContextAware, CoroutineScope {
      * Optionally provide [writes] - a set of states that this change affects.
      */
     public fun <T> DeviceState<T>.onNext(
-        vararg writes: DeviceState<*>,
-        alsoReads: Collection<DeviceState<*>> = emptySet(),
+        writes: Collection<DeviceState<*>> = emptySet(),
+        reads: Collection<DeviceState<*>> = emptySet(),
         onChange: suspend (T) -> Unit,
     ): Job = valueFlow.onEach(onChange).launchIn(this@StateContainer).also {
-        registerState(StateConnectionDescriptor(setOf(this, *alsoReads.toTypedArray()), setOf(*writes)))
+        registerElement(ConnectionConstrucorElement(reads + this, writes))
     }
 
     public fun <T> DeviceState<T>.onChange(
-        vararg writes: DeviceState<*>,
-        alsoReads: Collection<DeviceState<*>> = emptySet(),
+        writes: Collection<DeviceState<*>> = emptySet(),
+        reads: Collection<DeviceState<*>> = emptySet(),
         onChange: suspend (prev: T, next: T) -> Unit,
     ): Job = valueFlow.runningFold(Pair(value, value)) { pair, next ->
         Pair(pair.second, next)
@@ -68,7 +70,7 @@ public interface StateContainer : ContextAware, CoroutineScope {
             onChange(pair.first, pair.second)
         }
     }.launchIn(this@StateContainer).also {
-        registerState(StateConnectionDescriptor(setOf(this, *alsoReads.toTypedArray()), setOf(*writes)))
+        registerElement(ConnectionConstrucorElement(reads + this, writes))
     }
 }
 
@@ -76,21 +78,19 @@ public interface StateContainer : ContextAware, CoroutineScope {
  * Register a [state] in this container. The state is not registered as a device property if [this] is a [DeviceConstructor]
  */
 public fun <T, D : DeviceState<T>> StateContainer.state(state: D): D {
-    registerState(StateNodeDescriptor(state))
+    registerElement(StateConstructorElement(state))
     return state
 }
 
 /**
  * Create a register a [MutableDeviceState] with a given [converter]
  */
-public fun <T> StateContainer.mutableState(initialValue: T): MutableDeviceState<T> = state(
+public fun <T> StateContainer.stateOf(initialValue: T): MutableDeviceState<T> = state(
     MutableDeviceState(initialValue)
 )
 
-public fun <T : DeviceModel> StateContainer.model(model: T): T {
-    model.stateDescriptors.forEach {
-        registerState(it)
-    }
+public fun <T : ConstructorModel> StateContainer.model(model: T): T {
+    registerElement(ModelConstructorElement(model))
     return model
 }
 
@@ -101,9 +101,20 @@ public fun StateContainer.timer(tick: Duration): TimerState = state(TimerState(c
 
 
 public fun <T, R> StateContainer.mapState(
-    state: DeviceState<T>,
+    origin: DeviceState<T>,
     transformation: (T) -> R,
-): DeviceStateWithDependencies<R> = state(DeviceState.map(state, transformation))
+): DeviceStateWithDependencies<R> = state(DeviceState.map(origin, transformation))
+
+
+public fun <T, R> StateContainer.flowState(
+    origin: DeviceState<T>,
+    initialValue: R,
+    transformation: suspend FlowCollector<R>.(T) -> Unit
+): DeviceStateWithDependencies<R> {
+    val state = MutableDeviceState(initialValue)
+    origin.valueFlow.transform(transformation).onEach { state.value = it }.launchIn(this)
+    return state(state.withDependencies(setOf(origin)))
+}
 
 /**
  * Create a new state by combining two existing ones
@@ -122,13 +133,13 @@ public fun <T1, T2, R> StateContainer.combineState(
  * On resulting [Job] cancel the binding is unregistered
  */
 public fun <T> StateContainer.bindTo(sourceState: DeviceState<T>, targetState: MutableDeviceState<T>): Job {
-    val descriptor = StateConnectionDescriptor(setOf(sourceState), setOf(targetState))
-    registerState(descriptor)
+    val descriptor = ConnectionConstrucorElement(setOf(sourceState), setOf(targetState))
+    registerElement(descriptor)
     return sourceState.valueFlow.onEach {
         targetState.value = it
     }.launchIn(this).apply {
         invokeOnCompletion {
-            unregisterState(descriptor)
+            unregisterElement(descriptor)
         }
     }
 }
@@ -144,19 +155,19 @@ public fun <T, R> StateContainer.transformTo(
     targetState: MutableDeviceState<R>,
     transformation: suspend (T) -> R,
 ): Job {
-    val descriptor = StateConnectionDescriptor(setOf(sourceState), setOf(targetState))
-    registerState(descriptor)
+    val descriptor = ConnectionConstrucorElement(setOf(sourceState), setOf(targetState))
+    registerElement(descriptor)
     return sourceState.valueFlow.onEach {
         targetState.value = transformation(it)
     }.launchIn(this).apply {
         invokeOnCompletion {
-            unregisterState(descriptor)
+            unregisterElement(descriptor)
         }
     }
 }
 
 /**
- * Register [StateDescriptor] that combines values from [sourceState1] and [sourceState2] using [transformation].
+ * Register [ConstructorElement] that combines values from [sourceState1] and [sourceState2] using [transformation].
  *
  * On resulting [Job] cancel the binding is unregistered
  */
@@ -166,19 +177,19 @@ public fun <T1, T2, R> StateContainer.combineTo(
     targetState: MutableDeviceState<R>,
     transformation: suspend (T1, T2) -> R,
 ): Job {
-    val descriptor = StateConnectionDescriptor(setOf(sourceState1, sourceState2), setOf(targetState))
-    registerState(descriptor)
+    val descriptor = ConnectionConstrucorElement(setOf(sourceState1, sourceState2), setOf(targetState))
+    registerElement(descriptor)
     return kotlinx.coroutines.flow.combine(sourceState1.valueFlow, sourceState2.valueFlow, transformation).onEach {
         targetState.value = it
     }.launchIn(this).apply {
         invokeOnCompletion {
-            unregisterState(descriptor)
+            unregisterElement(descriptor)
         }
     }
 }
 
 /**
- * Register [StateDescriptor] that combines values from [sourceStates] using [transformation].
+ * Register [ConstructorElement] that combines values from [sourceStates] using [transformation].
  *
  * On resulting [Job] cancel the binding is unregistered
  */
@@ -187,13 +198,13 @@ public inline fun <reified T, R> StateContainer.combineTo(
     targetState: MutableDeviceState<R>,
     noinline transformation: suspend (Array<T>) -> R,
 ): Job {
-    val descriptor = StateConnectionDescriptor(sourceStates, setOf(targetState))
-    registerState(descriptor)
+    val descriptor = ConnectionConstrucorElement(sourceStates, setOf(targetState))
+    registerElement(descriptor)
     return kotlinx.coroutines.flow.combine(sourceStates.map { it.valueFlow }, transformation).onEach {
         targetState.value = it
     }.launchIn(this).apply {
         invokeOnCompletion {
-            unregisterState(descriptor)
+            unregisterElement(descriptor)
         }
     }
 }

@@ -17,11 +17,11 @@ public interface Regulator : Device {
     /**
      * Current position value
      */
-    public val position: Double
+    public suspend fun getPosition(): Double
 
     public companion object : DeviceSpec<Regulator>() {
         public val target: MutableDevicePropertySpec<Regulator, Double> by mutableProperty(MetaConverter.double, Regulator::target)
 
-        public val position: DevicePropertySpec<Regulator, Double> by doubleProperty { position }
+        public val position: DevicePropertySpec<Regulator, Double> by doubleProperty { getPosition() }
     }
 }

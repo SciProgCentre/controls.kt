@@ -53,5 +53,5 @@ public fun StateContainer.doubleInRangeState(
     initialValue: Double,
     range: ClosedFloatingPointRange<Double>,
 ): DoubleInRangeState = DoubleInRangeState(initialValue, range).also {
-    registerState(StateNodeDescriptor(it))
+    registerElement(StateConstructorElement(it))
 }

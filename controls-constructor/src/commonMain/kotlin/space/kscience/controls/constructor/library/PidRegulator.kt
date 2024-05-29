@@ -16,32 +16,22 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 
+
 /**
  * Pid regulator parameters
  */
-public interface PidParameters {
-    public val kp: Double
-    public val ki: Double
-    public val kd: Double
-    public val timeStep: Duration
-}
-
-private data class PidParametersImpl(
-    override val kp: Double,
-    override val ki: Double,
-    override val kd: Double,
-    override val timeStep: Duration,
-) : PidParameters
-
-public fun PidParameters(kp: Double, ki: Double, kd: Double, timeStep: Duration = 1.milliseconds): PidParameters =
-    PidParametersImpl(kp, ki, kd, timeStep)
-
+public data class PidParameters(
+    val kp: Double,
+    val ki: Double,
+    val kd: Double,
+    val timeStep: Duration  = 1.milliseconds,
+)
 /**
  * A drive with PID regulator
  */
 public class PidRegulator(
     public val drive: Drive,
-    public val pidParameters: PidParameters,
+    public var pidParameters: PidParameters, // TODO expose as property
 ) : DeviceBySpec<Regulator>(Regulator, drive.context), Regulator {
 
     private val clock = drive.context.clock
@@ -65,7 +55,7 @@ public class PidRegulator(
                 delay(pidParameters.timeStep)
                 mutex.withLock {
                     val realTime = clock.now()
-                    val delta = target - position
+                    val delta = target - getPosition()
                     val dtSeconds = (realTime - lastTime).toDouble(DurationUnit.SECONDS)
                     integral += delta * dtSeconds
                     val derivative = (drive.position - lastPosition) / dtSeconds
@@ -87,7 +77,7 @@ public class PidRegulator(
         drive.stop()
     }
 
-    override val position: Double get() = drive.position
+    override suspend fun getPosition(): Double = drive.position
 }
 
 public fun DeviceGroup.pid(

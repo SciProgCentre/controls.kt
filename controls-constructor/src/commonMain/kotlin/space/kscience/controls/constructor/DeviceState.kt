@@ -48,6 +48,12 @@ public interface DeviceStateWithDependencies<T> : DeviceState<T> {
     public val dependencies: Collection<DeviceState<*>>
 }
 
+public fun <T> DeviceState<T>.withDependencies(
+    dependencies: Collection<DeviceState<*>>
+): DeviceStateWithDependencies<T> = object : DeviceStateWithDependencies<T>, DeviceState<T> by this {
+    override val dependencies: Collection<DeviceState<*>> = dependencies
+}
+
 /**
  * Create a new read-only [DeviceState] that mirrors receiver state by mapping the value with [mapper].
  */

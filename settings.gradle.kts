@@ -64,6 +64,7 @@ include(
     ":controls-storage",
     ":controls-storage:controls-xodus",
     ":controls-constructor",
+    ":controls-visualisation-compose",
     ":controls-vision",
     ":controls-jupyter",
     ":magix",

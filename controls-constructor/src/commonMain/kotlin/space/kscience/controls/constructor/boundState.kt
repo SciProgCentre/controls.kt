@@ -92,11 +92,11 @@ public suspend fun <T> Device.mutablePropertyAsState(
     return mutablePropertyAsState(propertyName, metaConverter, initialValue)
 }
 
-public suspend fun <D : Device, T> D.mutablePropertyAsState(
+public suspend fun <D : Device, T> D.propertyAsState(
     propertySpec: MutableDevicePropertySpec<D, T>,
 ): MutableDeviceState<T> = mutablePropertyAsState(propertySpec.name, propertySpec.converter)
 
-public fun <D : Device, T> D.mutablePropertyAsState(
+public fun <D : Device, T> D.propertyAsState(
     propertySpec: MutableDevicePropertySpec<D, T>,
     initialValue: T,
 ): MutableDeviceState<T> = mutablePropertyAsState(propertySpec.name, propertySpec.converter, initialValue)

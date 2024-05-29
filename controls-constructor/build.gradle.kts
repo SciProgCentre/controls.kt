@@ -11,6 +11,7 @@ kscience{
     jvm()
     js()
     useCoroutines()
+    useSerialization()
     commonMain {
         api(projects.controlsCore)
     }

@@ -19,42 +19,37 @@ import kotlin.test.assertEquals
 class MagixLoopTest {
 
     @Test
-    fun deviceHub() = runTest {
-        val context = Context {
-            plugin(DeviceManager)
-        }
-
-        val server = context.startMagixServer()
-
-        val deviceManager = context.request(DeviceManager)
-
-        val deviceEndpoint = MagixEndpoint.rSocketWithWebSockets("localhost")
-
-//        deviceEndpoint.subscribe().onEach {
-//            println(it)
-//        }.launchIn(this)
-
-        deviceManager.launchMagixService(deviceEndpoint, "device")
-
-        launch {
-            delay(50)
-            repeat(10) {
-                deviceManager.install("test[$it]", TestDevice)
-            }
-        }
-
-        val clientEndpoint = MagixEndpoint.rSocketWithWebSockets("localhost")
-
-        val remoteHub = clientEndpoint.remoteDeviceHub(context, "client", "device")
-
-        assertEquals(0, remoteHub.devices.size)
-
-        delay(60)
-        //switch context to use actual delay
+    fun realDeviceHub() = runTest {
         withContext(Dispatchers.Default) {
+            val context = Context {
+                plugin(DeviceManager)
+            }
+
+            val server = context.startMagixServer()
+
+            val deviceManager = context.request(DeviceManager)
+
+            val deviceEndpoint = MagixEndpoint.rSocketWithWebSockets("localhost")
+
+            deviceManager.launchMagixService(deviceEndpoint, "device")
+
+            launch {
+                delay(50)
+                repeat(10) {
+                    deviceManager.install("test[$it]", TestDevice)
+                }
+            }
+
+            val clientEndpoint = MagixEndpoint.rSocketWithWebSockets("localhost")
+
+            val remoteHub = clientEndpoint.remoteDeviceHub(context, "client", "device")
+
+            assertEquals(0, remoteHub.devices.size)
+            delay(60)
             clientEndpoint.requestDeviceUpdate("client", "device")
             delay(60)
             assertEquals(10, remoteHub.devices.size)
+            server.stop()
         }
     }
 }

@@ -34,7 +34,7 @@ public suspend inline fun <reified T: Any> OpcUaDevice.readOpcWithTime(
     converter: MetaConverter<T>,
     magAge: Double = 500.0
 ): Pair<T, DateTime> {
-    val data = client.readValue(magAge, TimestampsToReturn.Server, nodeId).await()
+    val data: DataValue = client.readValue(magAge, TimestampsToReturn.Server, nodeId).await()
     val time = data.serverTime ?: error("No server time provided")
     val meta: Meta = when (val content = data.value.value) {
         is T -> return content to time

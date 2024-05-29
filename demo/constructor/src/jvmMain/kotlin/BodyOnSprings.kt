@@ -5,7 +5,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.MaterialTheme
-import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -13,10 +14,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import kotlinx.serialization.Serializable
+import space.kscience.controls.compose.asComposeState
 import space.kscience.controls.constructor.*
 import space.kscience.dataforge.context.Context
-import kotlin.coroutines.CoroutineContext
-import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.math.pow
 import kotlin.math.sqrt
 import kotlin.time.Duration.Companion.milliseconds
@@ -29,16 +29,11 @@ data class XY(val x: Double, val y: Double) {
     }
 }
 
+val XY.length: Double get() = sqrt(x.pow(2) + y.pow(2))
+
 operator fun XY.plus(other: XY): XY = XY(x + other.x, y + other.y)
 operator fun XY.times(c: Double): XY = XY(x * c, y * c)
 operator fun XY.div(c: Double): XY = XY(x / c, y / c)
-//
-//class XYPosition(context: Context, x0: Double, y0: Double) : DeviceModel(context) {
-//    val x: MutableDeviceState<Double> = mutableState(x0)
-//    val y: MutableDeviceState<Double> = mutableState(y0)
-//
-//    val xy = combineState(x, y) { x, y -> XY(x, y) }
-//}
 
 class Spring(
     context: Context,
@@ -46,26 +41,24 @@ class Spring(
     val l0: Double,
     val begin: DeviceState<XY>,
     val end: DeviceState<XY>,
-) : DeviceConstructor(context) {
-
-    val length = combineState(begin, end) { begin, end ->
-        sqrt((end.y - begin.y).pow(2) + (end.x - begin.x).pow(2))
-    }
-
-    val tension: DeviceState<Double> = mapState(length) { l ->
-        val delta = l - l0
-        k * delta
-    }
+) : ConstructorModel(context) {
 
     /**
-     * direction from start to end
+     * vector from start to end
      */
-    val direction = combineState(begin, end) { begin, end ->
+    val direction = combineState(begin, end) { begin: XY, end: XY ->
         val dx = end.x - begin.x
         val dy = end.y - begin.y
-        val l = sqrt((end.y - begin.y).pow(2) + (end.x - begin.x).pow(2))
+        val l = sqrt(dx.pow(2) + dy.pow(2))
         XY(dx / l, dy / l)
     }
+
+    val tension: DeviceState<Double> = combineState(begin, end) { begin: XY, end: XY ->
+        val dx = end.x - begin.x
+        val dy = end.y - begin.y
+        k * sqrt(dx.pow(2) + dy.pow(2))
+    }
+
 
     val beginForce = combineState(direction, tension) { direction: XY, tension: Double ->
         direction * (tension)
@@ -83,13 +76,15 @@ class MaterialPoint(
     val force: DeviceState<XY>,
     val position: MutableDeviceState<XY>,
     val velocity: MutableDeviceState<XY> = MutableDeviceState(XY.ZERO),
-) : DeviceModel(context, force) {
+) : ConstructorModel(context, force, position, velocity) {
 
     private val timer: TimerState = timer(2.milliseconds)
 
+    //TODO synchronize force change
+
     private val movement = timer.onChange(
-        position, velocity,
-        alsoReads = setOf(force, velocity, position)
+        writes = setOf(position, velocity),
+        reads = setOf(force, velocity, position)
     ) { prev, next ->
         val dt = (next - prev).toDouble(DurationUnit.SECONDS)
         val a = force.value / mass
@@ -105,31 +100,31 @@ class BodyOnSprings(
     k: Double,
     startPosition: XY,
     l0: Double = 1.0,
-    val xLeft: Double = 0.0,
-    val xRight: Double = 2.0,
-    val yBottom: Double = 0.0,
-    val yTop: Double = 2.0,
+    val xLeft: Double = -1.0,
+    val xRight: Double = 1.0,
+    val yBottom: Double = -1.0,
+    val yTop: Double = 1.0,
 ) : DeviceConstructor(context) {
 
     val width = xRight - xLeft
     val height = yTop - yBottom
 
-    val position = mutableState(startPosition)
+    val position = stateOf(startPosition)
 
-    private val leftAnchor = mutableState(XY(xLeft, yTop + yBottom / 2))
+    private val leftAnchor = stateOf(XY(xLeft, (yTop + yBottom) / 2))
 
-    val leftSpring by device(
+    val leftSpring = model(
         Spring(context, k, l0, leftAnchor, position)
     )
 
-    private val rightAnchor = mutableState(XY(xRight, yTop + yBottom / 2))
+    private val rightAnchor = stateOf(XY(xRight, (yTop + yBottom) / 2))
 
-    val rightSpring by device(
+    val rightSpring = model(
         Spring(context, k, l0, rightAnchor, position)
     )
 
-    val force: DeviceState<XY> = combineState(leftSpring.endForce, rightSpring.endForce) { left, rignt ->
-        left + rignt
+    val force: DeviceState<XY> = combineState(leftSpring.endForce, rightSpring.endForce) { left, right ->
+        left + right
     }
 
 
@@ -138,18 +133,13 @@ class BodyOnSprings(
             context = context,
             mass = mass,
             force = force,
-            position = position
+            position = position,
         )
     )
 }
 
-@Composable
-fun <T> DeviceState<T>.collect(
-    coroutineContext: CoroutineContext = EmptyCoroutineContext,
-): State<T> = valueFlow.collectAsState(value, coroutineContext)
-
 fun main() = application {
-    val initialState = XY(1.1, 1.1)
+    val initialState = XY(0.1, 0.2)
 
     Window(title = "Ball on springs", onCloseRequest = ::exitApplication) {
         MaterialTheme {
@@ -161,12 +151,20 @@ fun main() = application {
                 BodyOnSprings(context, 100.0, 1000.0, initialState)
             }
 
-            val position: XY by model.body.position.collect()
+            //TODO add ability to freeze model
+
+//            LaunchedEffect(Unit){
+//                model.position.valueFlow.onEach {
+//                    model.position.value = it.copy(y = model.position.value.y.coerceIn(-1.0..1.0))
+//                }.collect()
+//            }
+
+            val position: XY by model.body.position.asComposeState()
             Box(Modifier.size(400.dp)) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     fun XY.toOffset() = Offset(
-                        (x / model.width * size.width).toFloat(),
-                        (y / model.height * size.height).toFloat()
+                        center.x + (x / model.width * size.width).toFloat(),
+                        center.y - (y / model.height * size.height).toFloat()
                     )
 
                     drawCircle(
