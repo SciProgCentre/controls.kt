@@ -52,14 +52,18 @@ class LinearDrive(
 ) : DeviceConstructor(drive.context, meta) {
 
     val drive by device(drive)
-    val pid by device(PidRegulator(drive, pidParameters))
+    val pid by device(
+        PidRegulator(
+            context = context,
+            position = drive.propertyAsState(Drive.position, 0.0),
+            pidParameters = pidParameters
+        )
+    )
+
+    private val binding = bind(pid.output, drive.stateOfForce())
 
     val start by device(start)
     val end by device(end)
-
-    val position = drive.propertyAsState(Drive.position, Double.NaN)
-
-    val target = pid.propertyAsState(Regulator.target, 0.0)
 }
 
 /**
@@ -67,14 +71,14 @@ class LinearDrive(
  */
 fun LinearDrive(
     context: Context,
-    positionState: DoubleInRangeState,
+    positionState: MutableDoubleInRangeState,
     mass: Double,
     pidParameters: PidParameters,
     meta: Meta = Meta.EMPTY,
 ): LinearDrive = LinearDrive(
     drive = VirtualDrive(context, mass, positionState),
-    start = VirtualLimitSwitch(context, positionState.atStart),
-    end = VirtualLimitSwitch(context, positionState.atEnd),
+    start = LimitSwitch(context, positionState.atStart),
+    end = LimitSwitch(context, positionState.atEnd),
     pidParameters = pidParameters,
     meta = meta
 )
@@ -116,7 +120,7 @@ fun main() = application {
         mutableStateOf(PidParameters(kp = 2.5, ki = 0.0, kd = -0.1, timeStep = 0.005.seconds))
     }
 
-    val state = remember { DoubleInRangeState(0.0, -6.0..6.0) }
+    val state = remember { MutableDoubleInRangeState(0.0, -6.0..6.0) }
 
     val linearDrive = remember {
         context.install(
@@ -128,7 +132,7 @@ fun main() = application {
     val modulator = remember {
         context.install(
             "modulator",
-            Modulator(context, linearDrive.target)
+            Modulator(context, linearDrive.pid.target)
         )
     }
 
@@ -207,7 +211,7 @@ fun main() = application {
                             Slider(
                                 pidParameters.timeStep.toDouble(DurationUnit.MILLISECONDS).toFloat(),
                                 { pidParameters = pidParameters.copy(timeStep = it.toDouble().milliseconds) },
-                                valueRange = 0f..100f,
+                                valueRange = 1f..100f,
                                 steps = 100
                             )
                         }
@@ -248,14 +252,14 @@ fun main() = application {
                                 lineStyle = LineStyle(SolidColor(Color.Blue))
                             )
                             PlotDeviceProperty(
-                                linearDrive.pid,
-                                Regulator.position,
+                                linearDrive.drive,
+                                Drive.position,
                                 maxAge = maxAge,
                                 sampling = 50.milliseconds,
                             )
-                            PlotDeviceProperty(
-                                linearDrive.pid,
-                                Regulator.target,
+                            PlotNumberState(
+                                context = context,
+                                state = linearDrive.pid.target,
                                 maxAge = maxAge,
                                 sampling = 50.milliseconds,
                                 lineStyle = LineStyle(SolidColor(Color.Red))

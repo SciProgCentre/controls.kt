@@ -1,37 +1,45 @@
 package space.kscience.controls.constructor.library
 
-import space.kscience.controls.api.Device
 import space.kscience.controls.constructor.DeviceConstructor
 import space.kscience.controls.constructor.DeviceState
-import space.kscience.controls.constructor.property
+import space.kscience.controls.constructor.map
+import space.kscience.controls.constructor.registerAsProperty
+import space.kscience.controls.constructor.units.Direction
+import space.kscience.controls.constructor.units.NumericalValue
+import space.kscience.controls.constructor.units.UnitsOfMeasurement
+import space.kscience.controls.constructor.units.compareTo
 import space.kscience.controls.spec.DevicePropertySpec
 import space.kscience.controls.spec.DeviceSpec
 import space.kscience.controls.spec.booleanProperty
 import space.kscience.dataforge.context.Context
-import space.kscience.dataforge.meta.MetaConverter
 
-
-/**
- * A limit switch device
- */
-public interface LimitSwitch : Device {
-
-    public fun isLocked(): Boolean
-
-    public companion object : DeviceSpec<LimitSwitch>() {
-        public val locked: DevicePropertySpec<LimitSwitch, Boolean> by booleanProperty { isLocked() }
-    }
-}
 
 /**
  * Virtual [LimitSwitch]
  */
-public class VirtualLimitSwitch(
+public class LimitSwitch(
     context: Context,
     locked: DeviceState<Boolean>,
-) : DeviceConstructor(context), LimitSwitch {
+) : DeviceConstructor(context) {
 
-    public val locked: DeviceState<Boolean> by property(MetaConverter.boolean, locked)
+    public val locked: DeviceState<Boolean> = registerAsProperty(LimitSwitch.locked, locked)
 
-    override fun isLocked(): Boolean = locked.value
+    public companion object : DeviceSpec<LimitSwitch>() {
+        public val locked: DevicePropertySpec<LimitSwitch, Boolean> by booleanProperty { locked.value }
+    }
 }
+
+public fun <U : UnitsOfMeasurement, T : NumericalValue<U>> LimitSwitch(
+    context: Context,
+    limit: T,
+    boundary: Direction,
+    position: DeviceState<T>,
+): LimitSwitch = LimitSwitch(
+    context,
+    DeviceState.map(position) {
+        when (boundary) {
+            Direction.UP -> it >= limit
+            Direction.DOWN -> it <= limit
+        }
+    }
+)

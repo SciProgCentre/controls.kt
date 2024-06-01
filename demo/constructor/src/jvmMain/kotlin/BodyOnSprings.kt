@@ -41,7 +41,7 @@ class Spring(
     val l0: Double,
     val begin: DeviceState<XY>,
     val end: DeviceState<XY>,
-) : ConstructorModel(context) {
+) : ModelConstructor(context) {
 
     /**
      * vector from start to end
@@ -76,7 +76,7 @@ class MaterialPoint(
     val force: DeviceState<XY>,
     val position: MutableDeviceState<XY>,
     val velocity: MutableDeviceState<XY> = MutableDeviceState(XY.ZERO),
-) : ConstructorModel(context, force, position, velocity) {
+) : ModelConstructor(context, force, position, velocity) {
 
     private val timer: TimerState = timer(2.milliseconds)
 

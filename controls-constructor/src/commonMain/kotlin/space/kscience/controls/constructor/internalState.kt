@@ -2,6 +2,7 @@ package space.kscience.controls.constructor
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 
 /**
  * A [MutableDeviceState] that does not correspond to a physical state
@@ -35,3 +36,18 @@ public fun <T> MutableDeviceState(
     initialValue: T,
     callback: (T) -> Unit = {},
 ): MutableDeviceState<T> = VirtualDeviceState(initialValue, callback)
+
+
+/**
+ * Create a [DeviceState] with constant value
+ */
+public fun <T> DeviceState(
+    value: T
+): DeviceState<T> = object : DeviceState<T> {
+    override val value: T get() = value
+    override val valueFlow: Flow<T>
+        get() = emptyFlow()
+
+    override fun toString(): String = "ConstDeviceState($value)"
+
+}

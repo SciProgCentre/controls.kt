@@ -15,8 +15,9 @@ class TimerTest {
     @Test
     fun timer() = runTest {
         val timer = TimerState(Global.request(ClockManager), 10.milliseconds)
-        timer.valueFlow.take(10).onEach {
+        timer.valueFlow.take(100).onEach {
             println(it)
         }.collect()
+
     }
 }

@@ -1,19 +1,17 @@
 package space.kscience.controls.constructor.library
 
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.Instant
-import space.kscience.controls.constructor.DeviceGroup
+import space.kscience.controls.constructor.DeviceState
+import space.kscience.controls.constructor.MutableDeviceState
+import space.kscience.controls.constructor.state
+import space.kscience.controls.constructor.stateOf
 import space.kscience.controls.manager.clock
-import space.kscience.controls.spec.DeviceBySpec
-import space.kscience.controls.spec.write
-import space.kscience.dataforge.names.parseAsName
+import space.kscience.dataforge.context.Context
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 
 
@@ -24,64 +22,53 @@ public data class PidParameters(
     val kp: Double,
     val ki: Double,
     val kd: Double,
-    val timeStep: Duration  = 1.milliseconds,
+    val timeStep: Duration,
 )
+
 /**
- * A drive with PID regulator
+ * A PID regulator
  */
 public class PidRegulator(
-    public val drive: Drive,
+    context: Context,
+    private val position: DeviceState<Double>,
     public var pidParameters: PidParameters, // TODO expose as property
-) : DeviceBySpec<Regulator>(Regulator, drive.context), Regulator {
+    output: MutableDeviceState<Double> = MutableDeviceState(0.0),
+) : Regulator<Double>(context) {
 
-    private val clock = drive.context.clock
+    override val target: MutableDeviceState<Double> = stateOf(0.0)
+    override val output: MutableDeviceState<Double> = state(output)
 
-    override var target: Double = drive.position
-
-    private var lastTime: Instant = clock.now()
-    private var lastPosition: Double = target
+    private var lastPosition: Double = target.value
 
     private var integral: Double = 0.0
 
-
-    private var updateJob: Job? = null
     private val mutex = Mutex()
 
+    private var lastTime = clock.now()
 
-    override suspend fun onStart() {
-        drive.start()
-        updateJob = launch {
-            while (isActive) {
-                delay(pidParameters.timeStep)
-                mutex.withLock {
-                    val realTime = clock.now()
-                    val delta = target - getPosition()
-                    val dtSeconds = (realTime - lastTime).toDouble(DurationUnit.SECONDS)
-                    integral += delta * dtSeconds
-                    val derivative = (drive.position - lastPosition) / dtSeconds
+    private val updateJob = launch {
+        while (isActive) {
+            delay(pidParameters.timeStep)
+            mutex.withLock {
+                val realTime = clock.now()
+                val delta = target.value - position.value
+                val dtSeconds = (realTime - lastTime).toDouble(DurationUnit.SECONDS)
+                integral += delta * dtSeconds
+                val derivative = (position.value - lastPosition) / dtSeconds
 
-                    //set last time and value to new values
-                    lastTime = realTime
-                    lastPosition = drive.position
+                //set last time and value to new values
+                lastTime = realTime
+                lastPosition = position.value
 
-                    drive.write(Drive.force,pidParameters.kp * delta + pidParameters.ki * integral + pidParameters.kd * derivative)
-                    //drive.force = pidParameters.kp * delta + pidParameters.ki * integral + pidParameters.kd * derivative
-                    propertyChanged(Regulator.position, drive.position)
-                }
+                output.value = pidParameters.kp * delta + pidParameters.ki * integral + pidParameters.kd * derivative
             }
         }
     }
-
-    override suspend fun onStop() {
-        updateJob?.cancel()
-        drive.stop()
-    }
-
-    override suspend fun getPosition(): Double = drive.position
 }
 
-public fun DeviceGroup.pid(
-    name: String,
-    drive: Drive,
-    pidParameters: PidParameters,
-): PidRegulator = install(name.parseAsName(), PidRegulator(drive, pidParameters))
+//
+//public fun DeviceGroup.pid(
+//    name: String,
+//    drive: Drive,
+//    pidParameters: PidParameters,
+//): PidRegulator = install(name.parseAsName(), PidRegulator(drive, pidParameters))

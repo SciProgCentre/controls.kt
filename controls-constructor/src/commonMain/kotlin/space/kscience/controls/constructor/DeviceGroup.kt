@@ -93,11 +93,11 @@ public open class DeviceGroup(
     /**
      * Register a new property based on [DeviceState]. Properties could be modified dynamically
      */
-    public open fun <T> registerProperty(
+    public open fun <T, S : DeviceState<T>> registerAsProperty(
         converter: MetaConverter<T>,
         descriptor: PropertyDescriptor,
-        state: DeviceState<T>,
-    ) {
+        state: S,
+    ): S {
         val name = descriptor.name.parseAsName()
         require(properties[name] == null) { "Can't add property with name $name. It already exists." }
         properties[name] = Property(state, converter, descriptor)
@@ -109,6 +109,7 @@ public open class DeviceGroup(
                 )
             )
         }.launchIn(this)
+        return state
     }
 
     private val actions: MutableMap<Name, Action> = hashMapOf()
@@ -174,8 +175,8 @@ public open class DeviceGroup(
     }
 }
 
-public fun <T> DeviceGroup.registerProperty(propertySpec: DevicePropertySpec<*, T>, state: DeviceState<T>) {
-    registerProperty(propertySpec.converter, propertySpec.descriptor, state)
+public fun <T> DeviceGroup.registerAsProperty(propertySpec: DevicePropertySpec<*, T>, state: DeviceState<T>) {
+    registerAsProperty(propertySpec.converter, propertySpec.descriptor, state)
 }
 
 public fun DeviceManager.registerDeviceGroup(
@@ -246,13 +247,13 @@ public fun DeviceGroup.registerDeviceGroup(name: String, block: DeviceGroup.() -
 /**
  * Register read-only property based on [state]
  */
-public fun <T : Any> DeviceGroup.registerProperty(
+public fun <T : Any> DeviceGroup.registerAsProperty(
     name: String,
     converter: MetaConverter<T>,
     state: DeviceState<T>,
     descriptorBuilder: PropertyDescriptor.() -> Unit = {},
 ) {
-    registerProperty(
+    registerAsProperty(
         converter,
         PropertyDescriptor(name).apply(descriptorBuilder),
         state
@@ -268,7 +269,7 @@ public fun <T : Any> DeviceGroup.registerMutableProperty(
     state: MutableDeviceState<T>,
     descriptorBuilder: PropertyDescriptor.() -> Unit = {},
 ) {
-    registerProperty(
+    registerAsProperty(
         converter,
         PropertyDescriptor(name).apply(descriptorBuilder),
         state

@@ -36,7 +36,7 @@ public class ConnectionConstrucorElement(
 ) : ConstructorElement
 
 public class ModelConstructorElement(
-    public val model: ConstructorModel
+    public val model: ModelConstructor
 ) : ConstructorElement
 
 
@@ -89,7 +89,7 @@ public fun <T> StateContainer.stateOf(initialValue: T): MutableDeviceState<T> = 
     MutableDeviceState(initialValue)
 )
 
-public fun <T : ConstructorModel> StateContainer.model(model: T): T {
+public fun <T : ModelConstructor> StateContainer.model(model: T): T {
     registerElement(ModelConstructorElement(model))
     return model
 }
@@ -125,14 +125,13 @@ public fun <T1, T2, R> StateContainer.combineState(
     transformation: (T1, T2) -> R,
 ): DeviceState<R> = state(DeviceState.combine(first, second, transformation))
 
-
 /**
  * Create and start binding between [sourceState] and [targetState]. Changes made to [sourceState] are automatically
  * transferred onto [targetState], but not vise versa.
  *
  * On resulting [Job] cancel the binding is unregistered
  */
-public fun <T> StateContainer.bindTo(sourceState: DeviceState<T>, targetState: MutableDeviceState<T>): Job {
+public fun <T> StateContainer.bind(sourceState: DeviceState<T>, targetState: MutableDeviceState<T>): Job {
     val descriptor = ConnectionConstrucorElement(setOf(sourceState), setOf(targetState))
     registerElement(descriptor)
     return sourceState.valueFlow.onEach {

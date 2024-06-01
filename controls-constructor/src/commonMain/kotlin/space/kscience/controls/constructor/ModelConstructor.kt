@@ -6,7 +6,7 @@ import kotlinx.coroutines.newCoroutineContext
 import space.kscience.dataforge.context.Context
 import kotlin.coroutines.CoroutineContext
 
-public abstract class ConstructorModel(
+public abstract class ModelConstructor(
     final override val context: Context,
     vararg dependencies: DeviceState<*>,
 ) : StateContainer, CoroutineScope {

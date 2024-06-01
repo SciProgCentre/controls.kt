@@ -67,8 +67,10 @@ public fun <T, R> DeviceState.Companion.map(
 
     override val valueFlow: Flow<R> = state.valueFlow.map(mapper)
 
-    override fun toString(): String = "DeviceState.map(arg=${state})"
+    override fun toString(): String = "DeviceState.map(state=${state})"
 }
+
+public fun <T, R> DeviceState<T>.map(mapper: (T) -> R): DeviceStateWithDependencies<R> = DeviceState.map(this, mapper)
 
 /**
  * Combine two device states into one read-only [DeviceState]. Only the latest value of each state is used.

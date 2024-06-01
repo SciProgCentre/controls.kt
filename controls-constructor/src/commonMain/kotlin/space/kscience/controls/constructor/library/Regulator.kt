@@ -1,27 +1,17 @@
 package space.kscience.controls.constructor.library
 
-import space.kscience.controls.api.Device
-import space.kscience.controls.spec.*
-import space.kscience.dataforge.meta.MetaConverter
+import space.kscience.controls.constructor.DeviceConstructor
+import space.kscience.controls.constructor.DeviceState
+import space.kscience.controls.constructor.MutableDeviceState
+import space.kscience.dataforge.context.Context
 
 
 /**
  * A regulator with target value and current position
  */
-public interface Regulator : Device {
-    /**
-     * Get or set target value
-     */
-    public var target: Double
+public abstract class Regulator<T>(context: Context) : DeviceConstructor(context) {
 
-    /**
-     * Current position value
-     */
-    public suspend fun getPosition(): Double
+    public abstract val target: MutableDeviceState<T>
 
-    public companion object : DeviceSpec<Regulator>() {
-        public val target: MutableDevicePropertySpec<Regulator, Double> by mutableProperty(MetaConverter.double, Regulator::target)
-
-        public val position: DevicePropertySpec<Regulator, Double> by doubleProperty { getPosition() }
-    }
+    public abstract val output: DeviceState<T>
 }

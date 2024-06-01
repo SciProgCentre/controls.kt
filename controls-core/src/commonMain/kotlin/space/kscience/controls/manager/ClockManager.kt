@@ -9,6 +9,7 @@ import space.kscience.dataforge.meta.Meta
 import space.kscience.dataforge.meta.double
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.roundToLong
+import kotlin.time.Duration
 
 @OptIn(InternalCoroutinesApi::class)
 private class CompressedTimeDispatcher(
@@ -77,6 +78,14 @@ public class ClockManager : AbstractPlugin() {
     } else {
         CompressedTimeDispatcher(this, dispatcher, timeCompression)
     }
+
+    public fun scheduleWithFixedDelay(tick: Duration, block: suspend () -> Unit): Job = context.launch(asDispatcher()) {
+        while (isActive) {
+            delay(tick)
+            block()
+        }
+    }
+
 
     public companion object : PluginFactory<ClockManager> {
         override val tag: PluginTag = PluginTag("clock", group = PluginTag.DATAFORGE_GROUP)
