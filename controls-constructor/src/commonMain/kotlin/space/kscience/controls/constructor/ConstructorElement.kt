@@ -3,11 +3,13 @@ package space.kscience.controls.constructor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
+import kotlinx.datetime.Instant
 import space.kscience.controls.api.Device
 import space.kscience.controls.manager.ClockManager
 import space.kscience.dataforge.context.ContextAware
 import space.kscience.dataforge.context.request
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * A binding that is used to describe device functionality
@@ -36,7 +38,7 @@ public class ConnectionConstrucorElement(
 ) : ConstructorElement
 
 public class ModelConstructorElement(
-    public val model: ModelConstructor
+    public val model: ModelConstructor,
 ) : ConstructorElement
 
 
@@ -77,15 +79,15 @@ public interface StateContainer : ContextAware, CoroutineScope {
 /**
  * Register a [state] in this container. The state is not registered as a device property if [this] is a [DeviceConstructor]
  */
-public fun <T, D : DeviceState<T>> StateContainer.state(state: D): D {
+public fun <T, D : DeviceState<T>> StateContainer.registerState(state: D): D {
     registerElement(StateConstructorElement(state))
     return state
 }
 
 /**
- * Create a register a [MutableDeviceState] with a given [converter]
+ * Create a register a [MutableDeviceState]
  */
-public fun <T> StateContainer.stateOf(initialValue: T): MutableDeviceState<T> = state(
+public fun <T> StateContainer.stateOf(initialValue: T): MutableDeviceState<T> = registerState(
     MutableDeviceState(initialValue)
 )
 
@@ -97,23 +99,53 @@ public fun <T : ModelConstructor> StateContainer.model(model: T): T {
 /**
  * Create and register a timer state.
  */
-public fun StateContainer.timer(tick: Duration): TimerState = state(TimerState(context.request(ClockManager), tick))
+public fun StateContainer.timer(tick: Duration): TimerState =
+    registerState(TimerState(context.request(ClockManager), tick))
 
+/**
+ * Register a new timer and perform [block] on its change
+ */
+public fun StateContainer.onTimer(
+    tick: Duration,
+    writes: Collection<DeviceState<*>> = emptySet(),
+    reads: Collection<DeviceState<*>> = emptySet(),
+    block: suspend (prev: Instant, next: Instant) -> Unit,
+): Job = timer(tick).onChange(writes = writes, reads = reads, onChange = block)
+
+public enum class DefaultTimer(public val duration: Duration){
+    REALTIME(5.milliseconds),
+    VERY_FAST(10.milliseconds),
+    FAST(20.milliseconds),
+    MEDIUM(50.milliseconds),
+    SLOW(100.milliseconds),
+    VERY_SLOW(500.milliseconds),
+}
+
+/**
+ * Perform an action on default timer
+ */
+public fun StateContainer.onTimer(
+    defaultTimer: DefaultTimer = DefaultTimer.FAST,
+    writes: Collection<DeviceState<*>> = emptySet(),
+    reads: Collection<DeviceState<*>> = emptySet(),
+    block: suspend (prev: Instant, next: Instant) -> Unit,
+): Job = timer(defaultTimer.duration).onChange(writes = writes, reads = reads, onChange = block)
+//TODO implement timer pooling
 
 public fun <T, R> StateContainer.mapState(
     origin: DeviceState<T>,
     transformation: (T) -> R,
-): DeviceStateWithDependencies<R> = state(DeviceState.map(origin, transformation))
+): DeviceStateWithDependencies<R> = registerState(DeviceState.map(origin, transformation))
 
 
 public fun <T, R> StateContainer.flowState(
     origin: DeviceState<T>,
     initialValue: R,
-    transformation: suspend FlowCollector<R>.(T) -> Unit
+    transformation: suspend FlowCollector<R>.(T) -> Unit,
 ): DeviceStateWithDependencies<R> {
     val state = MutableDeviceState(initialValue)
     origin.valueFlow.transform(transformation).onEach { state.value = it }.launchIn(this)
-    return state(state.withDependencies(setOf(origin)))
+    return registerState(state.withDependencies(setOf(origin)))
 }
 
 /**
@@ -123,7 +155,7 @@ public fun <T1, T2, R> StateContainer.combineState(
     first: DeviceState<T1>,
     second: DeviceState<T2>,
     transformation: (T1, T2) -> R,
-): DeviceState<R> = state(DeviceState.combine(first, second, transformation))
+): DeviceState<R> = registerState(DeviceState.combine(first, second, transformation))
 
 /**
  * Create and start binding between [sourceState] and [targetState]. Changes made to [sourceState] are automatically

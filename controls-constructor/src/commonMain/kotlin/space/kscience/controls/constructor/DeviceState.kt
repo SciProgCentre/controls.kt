@@ -6,12 +6,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import space.kscience.controls.constructor.units.NumericalValue
+import space.kscience.controls.constructor.units.UnitsOfMeasurement
 import kotlin.reflect.KProperty
 
 /**
  * An observable state of a device
  */
-public interface DeviceState<T> {
+public interface DeviceState<out T> {
     public val value: T
 
     public val valueFlow: Flow<T>
@@ -49,7 +51,7 @@ public interface DeviceStateWithDependencies<T> : DeviceState<T> {
 }
 
 public fun <T> DeviceState<T>.withDependencies(
-    dependencies: Collection<DeviceState<*>>
+    dependencies: Collection<DeviceState<*>>,
 ): DeviceStateWithDependencies<T> = object : DeviceStateWithDependencies<T>, DeviceState<T> by this {
     override val dependencies: Collection<DeviceState<*>> = dependencies
 }
@@ -71,6 +73,16 @@ public fun <T, R> DeviceState.Companion.map(
 }
 
 public fun <T, R> DeviceState<T>.map(mapper: (T) -> R): DeviceStateWithDependencies<R> = DeviceState.map(this, mapper)
+
+public fun DeviceState<out NumericalValue<out UnitsOfMeasurement>>.values(): DeviceState<Double> = object : DeviceState<Double> {
+    override val value: Double
+        get() = this@values.value.value
+
+    override val valueFlow: Flow<Double>
+        get() = this@values.valueFlow.map { it.value }
+
+    override fun toString(): String = this@values.toString()
+}
 
 /**
  * Combine two device states into one read-only [DeviceState]. Only the latest value of each state is used.

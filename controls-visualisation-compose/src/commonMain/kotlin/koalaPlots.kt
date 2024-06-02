@@ -17,6 +17,8 @@ import space.kscience.controls.api.Device
 import space.kscience.controls.api.PropertyChangedMessage
 import space.kscience.controls.api.propertyMessageFlow
 import space.kscience.controls.constructor.DeviceState
+import space.kscience.controls.constructor.units.NumericalValue
+import space.kscience.controls.constructor.values
 import space.kscience.controls.manager.clock
 import space.kscience.controls.misc.ValueWithTime
 import space.kscience.controls.spec.DevicePropertySpec
@@ -139,7 +141,7 @@ public fun XYGraphScope<Instant, Double>.PlotDeviceProperty(
 @Composable
 public fun XYGraphScope<Instant, Double>.PlotNumberState(
     context: Context,
-    state: DeviceState<out Number>,
+    state: DeviceState<Number>,
     maxAge: Duration = defaultMaxAge,
     maxPoints: Int = defaultMaxPoints,
     minPoints: Int = defaultMinPoints,
@@ -161,6 +163,19 @@ public fun XYGraphScope<Instant, Double>.PlotNumberState(
 
 
     PlotTimeSeries(points, lineStyle)
+}
+
+@Composable
+public fun XYGraphScope<Instant, Double>.PlotNumericState(
+    context: Context,
+    state: DeviceState<NumericalValue<*>>,
+    maxAge: Duration = defaultMaxAge,
+    maxPoints: Int = defaultMaxPoints,
+    minPoints: Int = defaultMinPoints,
+    sampling: Duration = defaultSampling,
+    lineStyle: LineStyle = defaultLineStyle,
+): Unit {
+    PlotNumberState(context, state.values(), maxAge, maxPoints, minPoints, sampling, lineStyle)
 }
 
 

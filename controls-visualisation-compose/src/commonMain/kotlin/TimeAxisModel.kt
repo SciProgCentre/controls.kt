@@ -19,15 +19,12 @@ public class TimeAxisModel(
         val currentRange = rangeProvider()
         val rangeLength = currentRange.endInclusive - currentRange.start
         val numTicks = floor(axisLength / minimumMajorTickSpacing).toInt()
-        val numMinorTicks = numTicks * 2
         return object : TickValues<Instant> {
             override val majorTickValues: List<Instant> = List(numTicks) {
                 currentRange.start + it.toDouble() / (numTicks - 1) * rangeLength
             }
 
-            override val minorTickValues: List<Instant> = List(numMinorTicks) {
-                currentRange.start + it.toDouble() / (numMinorTicks - 1) * rangeLength
-            }
+            override val minorTickValues: List<Instant> = emptyList()
         }
     }
 
