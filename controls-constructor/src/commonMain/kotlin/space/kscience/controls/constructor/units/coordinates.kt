@@ -1,5 +1,8 @@
 package space.kscience.controls.constructor.units
 
+import kotlin.math.pow
+import kotlin.math.sqrt
+
 public data class XY<U : UnitsOfMeasurement>(val x: NumericalValue<U>, val y: NumericalValue<U>)
 
 public fun <U : UnitsOfMeasurement> XY(x: Number, y: Number): XY<U> = XY(NumericalValue(x), NumericalValue((y)))
@@ -17,6 +20,11 @@ public data class XYZ<U : UnitsOfMeasurement>(
     val y: NumericalValue<U>,
     val z: NumericalValue<U>,
 )
+
+public val <U : UnitsOfMeasurement> XYZ<U>.length: NumericalValue<U>
+    get() = NumericalValue(
+        sqrt(x.value.pow(2) + y.value.pow(2) + z.value.pow(2))
+    )
 
 public fun <U : UnitsOfMeasurement> XYZ(x: Number, y: Number, z: Number): XYZ<U> =
     XYZ(NumericalValue(x), NumericalValue((y)), NumericalValue(z))

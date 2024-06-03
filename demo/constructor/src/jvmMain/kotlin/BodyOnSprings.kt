@@ -16,8 +16,6 @@ import space.kscience.controls.constructor.models.MaterialPoint
 import space.kscience.controls.constructor.units.*
 import space.kscience.dataforge.context.Context
 import java.awt.Dimension
-import kotlin.math.pow
-import kotlin.math.sqrt
 
 
 private class Spring(
@@ -33,7 +31,7 @@ private class Spring(
      */
     val tension: DeviceState<XYZ<Newtons>> = combineState(begin, end) { begin: XYZ<Meters>, end: XYZ<Meters> ->
         val delta = end - begin
-        val l = sqrt(delta.x.value.pow(2) + delta.y.value.pow(2) + delta.z.value.pow(2))
+        val l = delta.length.value
         ((delta / l) * k * (l - l0.value)).cast(Newtons)
     }
 }
@@ -87,7 +85,7 @@ private class BodyOnSprings(
 }
 
 fun main() = application {
-    val initialState = XYZ<Meters>(0.01, 0.1, 0)
+    val initialState = XYZ<Meters>(0, 0.4, 0)
 
     Window(title = "Ball on springs", onCloseRequest = ::exitApplication) {
         window.minimumSize = Dimension(400, 400)

@@ -26,17 +26,23 @@ public class MaterialPoint(
     private var currentForce = force.value
 
     private val movement = onTimer(
+        DefaultTimer.REALTIME,
         reads = setOf(velocity, position),
         writes = setOf(velocity, position)
     ) { prev, next ->
         val dtSeconds = (next - prev).toDouble(DurationUnit.SECONDS)
 
         // compute new value based on velocity and acceleration from the previous step
-        position.value += (velocity.value * dtSeconds).cast(Meters) +
+        val deltaR = (velocity.value * dtSeconds).cast(Meters) +
                 (currentForce / mass.value * dtSeconds.pow(2) / 2).cast(Meters)
+        position.value += deltaR
 
         // compute new velocity based on acceleration on the previous step
-        velocity.value += (currentForce / mass.value * dtSeconds).cast(MetersPerSecond)
+        val deltaV = (currentForce / mass.value * dtSeconds).cast(MetersPerSecond)
+        //TODO apply energy correction
+        //val work = deltaR.length.value * currentForce.length.value
+        velocity.value += deltaV
+
         currentForce = force.value
     }
 }
