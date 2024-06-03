@@ -11,11 +11,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
-import space.kscience.controls.constructor.DeviceConstructor
-import space.kscience.controls.constructor.MutableDeviceState
-import space.kscience.controls.constructor.device
+import space.kscience.controls.constructor.*
 import space.kscience.controls.constructor.devices.StepDrive
 import space.kscience.controls.constructor.devices.angle
 import space.kscience.controls.constructor.models.ScrewDrive
@@ -28,7 +27,7 @@ import java.awt.Dimension
 import kotlin.random.Random
 
 
-class Plotter(
+private class Plotter(
     context: Context,
     xDrive: StepDrive,
     yDrive: StepDrive,
@@ -42,16 +41,16 @@ class Plotter(
         yDrive.target.value = y.toLong()
     }
 
-//    val position = combineState(xDrive.position, yDrive.position) { x, y ->
-//        space.kscience.controls.constructor.models.XY(x, y)
-//    }
+    val ticks = combineState(xDrive.position, yDrive.position) { x, y ->
+        x to y
+    }
 
     //TODO add calibration
 
     // TODO add draw as action
 }
 
-suspend fun Plotter.modernArt(xRange: IntRange, yRange: IntRange) {
+private suspend fun Plotter.modernArt(xRange: IntRange, yRange: IntRange) {
     while (isActive) {
         val randomX = Random.nextInt(xRange.first, xRange.last)
         val randomY = Random.nextInt(yRange.first, yRange.last)
@@ -62,7 +61,7 @@ suspend fun Plotter.modernArt(xRange: IntRange, yRange: IntRange) {
     }
 }
 
-suspend fun Plotter.square(xRange: IntRange, yRange: IntRange) {
+private suspend fun Plotter.square(xRange: IntRange, yRange: IntRange) {
     while (isActive) {
         moveToXY(xRange.first, yRange.first)
         delay(1000)
@@ -94,12 +93,33 @@ private data class PlotterPoint(
     val color: Color = Color.Black,
 )
 
+private class PlotterModel(
+    context: Context,
+    val callback: (PlotterPoint) -> Unit,
+) : ModelConstructor(context) {
+
+    private val xDrive = StepDrive(context, ticksPerSecond)
+    private val xTransmission = ScrewDrive(context, NumericalValue(0.01))
+    val x = xTransmission.degreesToMeters(xDrive.angle(step)).coerceIn(xRange)
+
+    private val yDrive = StepDrive(context, ticksPerSecond)
+    private val yTransmission = ScrewDrive(context, NumericalValue(0.01))
+    val y = yTransmission.degreesToMeters(yDrive.angle(step)).coerceIn(yRange)
+
+    val xy: DeviceState<XY<Meters>> = combineState(x, y) { x, y -> XY(x, y) }
+
+    val plotter = Plotter(context, xDrive, yDrive) { color ->
+        println("Point X: ${x.value.value}, Y: ${y.value.value}, color: $color")
+        callback(PlotterPoint(x.value, y.value, color))
+    }
+}
+
 suspend fun main() = application {
     Window(title = "Pid regulator simulator", onCloseRequest = ::exitApplication) {
         window.minimumSize = Dimension(400, 400)
 
         val points = remember { mutableStateListOf<PlotterPoint>() }
-        var position by remember { mutableStateOf(PlotterPoint(NumericalValue(0), NumericalValue(0))) }
+        var position by remember { mutableStateOf(XY<Meters>(0, 0)) }
 
         LaunchedEffect(Unit) {
             val context = Context {
@@ -109,42 +129,23 @@ suspend fun main() = application {
 
             /* Here goes the device definition block */
 
-
-            val xDrive = StepDrive(context, ticksPerSecond)
-            val xTransmission = ScrewDrive(context, NumericalValue(0.01))
-            val x = xTransmission.degreesToMeters(xDrive.angle(step)).coerceIn(xRange)
-
-            val yDrive = StepDrive(context, ticksPerSecond)
-            val yTransmission = ScrewDrive(context, NumericalValue(0.01))
-            val y = yTransmission.degreesToMeters(yDrive.angle(step)).coerceIn(yRange)
-
-            val plotter = Plotter(context, xDrive, yDrive) { color ->
-                println("Point X: ${x.value.value}, Y: ${y.value.value}, color: $color")
-                points.add(PlotterPoint(x.value, y.value, color))
+            val plotterModel = PlotterModel(context) { plotterPoint ->
+                points.add(plotterPoint)
             }
-
 
             /* Start visualization program */
 
-            launch {
-                x.valueFlow.collect {
-                    position = position.copy(x = it)
-                }
-            }
-
-            launch {
-                y.valueFlow.collect {
-                    position = position.copy(y = it)
-                }
-            }
+            plotterModel.xy.valueFlow.onEach {
+                position = it
+            }.launchIn(this)
 
             /* run program */
 
-            launch {
-                val range = -1000..1000
+
+            val range = -1000..1000
 //                plotter.modernArt(range, range)
-                plotter.square(range, range)
-            }
+            plotterModel.plotter.square(range, range)
+
         }
 
 
