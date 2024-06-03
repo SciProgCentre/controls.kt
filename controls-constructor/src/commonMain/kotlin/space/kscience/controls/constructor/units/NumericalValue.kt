@@ -46,6 +46,8 @@ public operator fun <U : UnitsOfMeasurement> NumericalValue<U>.div(
 public operator fun <U : UnitsOfMeasurement> NumericalValue<U>.div(other: NumericalValue<U>): Double =
     value / other.value
 
+public operator fun <U: UnitsOfMeasurement> NumericalValue<U>.unaryMinus(): NumericalValue<U> = NumericalValue(-value)
+
 
 private object NumericalValueMetaConverter : MetaConverter<NumericalValue<*>> {
     override fun convert(obj: NumericalValue<*>): Meta = Meta(obj.value)
