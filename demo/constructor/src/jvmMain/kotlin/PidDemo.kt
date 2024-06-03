@@ -94,7 +94,7 @@ internal fun createLinearDriveModel(
     //create a drive model with zero starting force
     val drive = Drive(context)
 
-    //a screw drive to converse a rotational moment into a linear one
+    //a screw drive to convert a rotational moment into a force
     val screwDrive = ScrewDrive(context, leverage)
 
 
@@ -107,7 +107,7 @@ internal fun createLinearDriveModel(
      */
     val inertiaModel = Inertia.linear(
         context = context,
-        force = screwDrive.transformForce(drive.force),
+        force = screwDrive.torqueToForce(drive.force),
         mass = mass,
         position = position
     )
@@ -266,7 +266,7 @@ fun main() = application {
                             yAxisModel = rememberDoubleLinearAxisModel((range.start - 1.0)..(range.endInclusive + 1.0)),
                             xAxisTitle = { Text("Time in seconds relative to current") },
                             xAxisLabels = { it: Instant ->
-                                androidx.compose.material3.Text(
+                                Text(
                                     (clock.now() - it).toDouble(
                                         DurationUnit.SECONDS
                                     ).toString(2)

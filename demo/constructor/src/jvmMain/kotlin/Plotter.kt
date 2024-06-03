@@ -18,7 +18,6 @@ import space.kscience.controls.constructor.MutableDeviceState
 import space.kscience.controls.constructor.device
 import space.kscience.controls.constructor.devices.StepDrive
 import space.kscience.controls.constructor.devices.angle
-import space.kscience.controls.constructor.models.RangeState
 import space.kscience.controls.constructor.models.ScrewDrive
 import space.kscience.controls.constructor.models.coerceIn
 import space.kscience.controls.constructor.units.*
@@ -38,10 +37,14 @@ class Plotter(
     val xDrive by device(xDrive)
     val yDrive by device(yDrive)
 
-    public fun moveToXY(x: Int, y: Int) {
-        xDrive.target.value = x
-        yDrive.target.value = y
+    public fun moveToXY(x: Number, y: Number) {
+        xDrive.target.value = x.toLong()
+        yDrive.target.value = y.toLong()
     }
+
+//    val position = combineState(xDrive.position, yDrive.position) { x, y ->
+//        space.kscience.controls.constructor.models.XY(x, y)
+//    }
 
     //TODO add calibration
 
@@ -49,10 +52,11 @@ class Plotter(
 }
 
 suspend fun Plotter.modernArt(xRange: IntRange, yRange: IntRange) {
-    while (isActive){
+    while (isActive) {
         val randomX = Random.nextInt(xRange.first, xRange.last)
-        val randomY = Random.nextInt(xRange.first, xRange.last)
+        val randomY = Random.nextInt(yRange.first, yRange.last)
         moveToXY(randomX, randomY)
+        //TODO wait for position instead of custom delay
         delay(500)
         paint(Color(Random.nextInt()))
     }
@@ -80,8 +84,8 @@ suspend fun Plotter.square(xRange: IntRange, yRange: IntRange) {
 
 private val xRange = NumericalValue<Meters>(-0.5)..NumericalValue<Meters>(0.5)
 private val yRange = NumericalValue<Meters>(-0.5)..NumericalValue<Meters>(0.5)
-private val ticksPerSecond = MutableDeviceState(250.0)
-private val step = NumericalValue<Degrees>(1.2)
+private val ticksPerSecond = MutableDeviceState(3000.0)
+private val step = NumericalValue<Degrees>(1.8)
 
 
 private data class PlotterPoint(
@@ -106,13 +110,13 @@ suspend fun main() = application {
             /* Here goes the device definition block */
 
 
-            val xScrewDrive = ScrewDrive(context, NumericalValue(0.01))
             val xDrive = StepDrive(context, ticksPerSecond)
-            val x: RangeState<NumericalValue<Meters>> = xScrewDrive.transformOffset(xDrive.angle(step)).coerceIn(xRange)
+            val xTransmission = ScrewDrive(context, NumericalValue(0.01))
+            val x = xTransmission.degreesToMeters(xDrive.angle(step)).coerceIn(xRange)
 
-            val yScrewDrive = ScrewDrive(context, NumericalValue(0.01))
             val yDrive = StepDrive(context, ticksPerSecond)
-            val y: RangeState<NumericalValue<Meters>> = yScrewDrive.transformOffset(yDrive.angle(step)).coerceIn(yRange)
+            val yTransmission = ScrewDrive(context, NumericalValue(0.01))
+            val y = yTransmission.degreesToMeters(yDrive.angle(step)).coerceIn(yRange)
 
             val plotter = Plotter(context, xDrive, yDrive) { color ->
                 println("Point X: ${x.value.value}, Y: ${y.value.value}, color: $color")
@@ -134,10 +138,12 @@ suspend fun main() = application {
                 }
             }
 
+            /* run program */
+
             launch {
-                val range = -100..100
-                plotter.modernArt(range, range)
-                //plotter.square(range, range)
+                val range = -1000..1000
+//                plotter.modernArt(range, range)
+                plotter.square(range, range)
             }
         }
 

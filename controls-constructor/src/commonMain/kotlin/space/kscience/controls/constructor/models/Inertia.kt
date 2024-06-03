@@ -25,11 +25,9 @@ public class Inertia<U : UnitsOfMeasurement, V : UnitsOfMeasurement>(
         registerState(velocity)
     }
 
-    private val movementTimer = timer(timerPrecision)
-
     private var currentForce = force.value
 
-    private val movement = movementTimer.onChange { prev, next ->
+    private val movement = onTimer (timerPrecision) { prev, next ->
         val dtSeconds = (next - prev).toDouble(DurationUnit.SECONDS)
 
         // compute new value based on velocity and acceleration from the previous step
@@ -57,21 +55,6 @@ public class Inertia<U : UnitsOfMeasurement, V : UnitsOfMeasurement>(
             position = position,
             velocity = velocity
         )
-//
-//
-//        public fun linear(
-//            context: Context,
-//            force: DeviceState<NumericalValue<Newtons>>,
-//            mass: NumericalValue<Kilograms>,
-//            initialPosition: NumericalValue<Meters>,
-//            initialVelocity: NumericalValue<MetersPerSecond> = NumericalValue(0),
-//        ): Inertia<Meters, MetersPerSecond> = Inertia(
-//            context = context,
-//            force = force.values(),
-//            inertia = mass.value,
-//            position = MutableDeviceState(initialPosition),
-//            velocity = MutableDeviceState(initialVelocity)
-//        )
 
         public fun circular(
             context: Context,
@@ -86,19 +69,5 @@ public class Inertia<U : UnitsOfMeasurement, V : UnitsOfMeasurement>(
             position = position,
             velocity = velocity
         )
-//
-//        public fun circular(
-//            context: Context,
-//            force: DeviceState<NumericalValue<NewtonsMeters>>,
-//            momentOfInertia: NumericalValue<KgM2>,
-//            initialPosition: NumericalValue<Degrees>,
-//            initialVelocity: NumericalValue<DegreesPerSecond> = NumericalValue(0),
-//        ): Inertia<Degrees, DegreesPerSecond> = Inertia(
-//            context = context,
-//            force = force.values(),
-//            inertia = momentOfInertia.value,
-//            position = MutableDeviceState(initialPosition),
-//            velocity = MutableDeviceState(initialVelocity)
-//        )
     }
 }

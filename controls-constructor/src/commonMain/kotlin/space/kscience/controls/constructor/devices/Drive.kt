@@ -9,6 +9,7 @@ import space.kscience.controls.constructor.units.numerical
 import space.kscience.dataforge.context.Context
 import space.kscience.dataforge.meta.MetaConverter
 
+//TODO use current as input
 
 public class Drive(
     context: Context,

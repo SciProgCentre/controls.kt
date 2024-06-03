@@ -9,7 +9,7 @@ import space.kscience.dataforge.context.Context
 import space.kscience.dataforge.meta.MetaConverter
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 import kotlin.time.DurationUnit
 
 /**
@@ -22,25 +22,27 @@ import kotlin.time.DurationUnit
 public class StepDrive(
     context: Context,
     ticksPerSecond: MutableDeviceState<Double>,
-    target: MutableDeviceState<Int> = MutableDeviceState(0),
-    private val writeTicks: suspend (ticks: Int, speed: Double) -> Unit = { _, _ -> },
+    target: MutableDeviceState<Long> = MutableDeviceState(0),
+    private val writeTicks: suspend (ticks: Long, speed: Double) -> Unit = { _, _ -> },
 ) : DeviceConstructor(context) {
 
-    public val target: MutableDeviceState<Int> by property(MetaConverter.int, target)
+    public val target: MutableDeviceState<Long> by property(MetaConverter.long, target)
 
     public val speed: MutableDeviceState<Double> by property(MetaConverter.double, ticksPerSecond)
 
     private val positionState = stateOf(target.value)
 
-    public val position: DeviceState<Int> by property(MetaConverter.int, positionState)
+    public val position: DeviceState<Long> by property(MetaConverter.long, positionState)
 
+
+    //FIXME round to zero problem
     private val ticker = onTimer(reads = setOf(target, position), writes = setOf(position)) { prev, next ->
         val tickSpeed = ticksPerSecond.value
         val timeDelta = (next - prev).toDouble(DurationUnit.SECONDS)
-        val ticksDelta: Int = target.value - position.value
-        val steps: Int = when {
-            ticksDelta > 0 -> min(ticksDelta, (timeDelta * tickSpeed).roundToInt())
-            ticksDelta < 0 -> max(ticksDelta, -(timeDelta * tickSpeed).roundToInt())
+        val ticksDelta: Long = target.value - position.value
+        val steps: Long = when {
+            ticksDelta > 0 -> min(ticksDelta, (timeDelta * tickSpeed).roundToLong())
+            ticksDelta < 0 -> max(ticksDelta, -(timeDelta * tickSpeed).roundToLong())
             else -> return@onTimer
         }
         writeTicks(steps, tickSpeed)
@@ -55,6 +57,6 @@ public fun StepDrive.angle(
     step: NumericalValue<Degrees>,
     zero: NumericalValue<Degrees> = NumericalValue(0),
 ): DeviceState<NumericalValue<Degrees>> = position.map {
-    zero + it.toDouble() * step
+    zero + it * step
 }
 

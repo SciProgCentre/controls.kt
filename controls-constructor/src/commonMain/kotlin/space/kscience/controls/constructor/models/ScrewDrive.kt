@@ -12,17 +12,17 @@ public class ScrewDrive(
     public val leverage: NumericalValue<Meters>,
 ) : ModelConstructor(context) {
 
-    public fun transformForce(
-        stateOfForce: DeviceState<NumericalValue<NewtonsMeters>>,
-    ): DeviceState<NumericalValue<Newtons>> = DeviceState.map(stateOfForce) {
-        NumericalValue(it.value * leverage.value/2/ PI)
+    public fun torqueToForce(
+        stateOfMomentum: DeviceState<NumericalValue<NewtonsMeters>>,
+    ): DeviceState<NumericalValue<Newtons>> = DeviceState.map(stateOfMomentum) { momentum ->
+        NumericalValue(momentum.value / leverage.value )
     }
 
-    public fun transformOffset(
+    public fun degreesToMeters(
         stateOfAngle: DeviceState<NumericalValue<Degrees>>,
         offset: NumericalValue<Meters> = NumericalValue(0),
-    ): DeviceState<NumericalValue<Meters>> = DeviceState.map(stateOfAngle) {
-        offset + NumericalValue(it.value * leverage.value/2/ PI)
+    ): DeviceState<NumericalValue<Meters>> = DeviceState.map(stateOfAngle) { degrees ->
+        offset + NumericalValue(degrees.value * 2 * PI / 360 *leverage.value )
     }
 
 }
