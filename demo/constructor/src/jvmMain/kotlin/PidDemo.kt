@@ -72,7 +72,7 @@ class Modulator(
 }
 
 
-private val inertia = NumericalValue<Kilograms>(0.1)
+private val mass = NumericalValue<Kilograms>(0.1)
 
 private val leverage = NumericalValue<Meters>(0.05)
 
@@ -83,7 +83,13 @@ private val range = -6.0..6.0
 /**
  * The whole physical model is here
  */
-private fun createLinearDriveModel(context: Context, pidParameters: PidParameters): LinearDrive {
+internal fun createLinearDriveModel(
+    context: Context,
+    pidParameters: PidParameters,
+    mass: NumericalValue<Kilograms>,
+    leverage: NumericalValue<Meters>,
+    position: MutableRangeState<NumericalValue<Meters>>,
+): LinearDrive {
 
     //create a drive model with zero starting force
     val drive = Drive(context)
@@ -91,8 +97,6 @@ private fun createLinearDriveModel(context: Context, pidParameters: PidParameter
     //a screw drive to converse a rotational moment into a linear one
     val screwDrive = ScrewDrive(context, leverage)
 
-    // Create a physical position coerced in a given range
-    val position = MutableRangeState<Meters>(0.0, range)
 
     /**
      * Create an inertia model.
@@ -101,10 +105,10 @@ private fun createLinearDriveModel(context: Context, pidParameters: PidParameter
      * Force is the input parameter, position is output parameter
      *
      */
-    val inertia = Inertia.linear(
+    val inertiaModel = Inertia.linear(
         context = context,
         force = screwDrive.transformForce(drive.force),
-        mass = inertia,
+        mass = mass,
         position = position
     )
 
@@ -114,12 +118,12 @@ private fun createLinearDriveModel(context: Context, pidParameters: PidParameter
     val startLimitSwitch = LimitSwitch(context, position.atStart)
     val endLimitSwitch = LimitSwitch(context, position.atEnd)
 
-    return context.install(
-        "linearDrive",
-        LinearDrive(drive, startLimitSwitch, endLimitSwitch, position, pidParameters)
-    )
-}
+    /**
+     * Install the resulting device
+     */
+    return LinearDrive(drive, startLimitSwitch, endLimitSwitch, position, pidParameters)
 
+}
 
 private fun createModulator(linearDrive: LinearDrive): Modulator = linearDrive.context.install(
     "modulator",
@@ -140,11 +144,21 @@ fun main() = application {
     }
 
     val linearDrive: LinearDrive = remember {
-        createLinearDriveModel(context, pidParameters)
+        context.install(
+            "linearDrive",
+            createLinearDriveModel(
+                context = context,
+                pidParameters = pidParameters,
+                mass = mass,
+                leverage = leverage,
+                // Create a physical position coerced in a given range
+                position = MutableRangeState<Meters>(0.0, range)
+            )
+        )
     }
 
     val modulator = remember {
-        createModulator(linearDrive)
+        context.install("modulator", createModulator(linearDrive))
     }
 
     //bind pid parameters

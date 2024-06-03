@@ -23,19 +23,19 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.DurationUnit
 
 @Serializable
-data class XY(val x: Double, val y: Double) {
+private data class XY(val x: Double, val y: Double) {
     companion object {
         val ZERO = XY(0.0, 0.0)
     }
 }
 
-val XY.length: Double get() = sqrt(x.pow(2) + y.pow(2))
+private val XY.length: Double get() = sqrt(x.pow(2) + y.pow(2))
 
-operator fun XY.plus(other: XY): XY = XY(x + other.x, y + other.y)
-operator fun XY.times(c: Double): XY = XY(x * c, y * c)
-operator fun XY.div(c: Double): XY = XY(x / c, y / c)
+private operator fun XY.plus(other: XY): XY = XY(x + other.x, y + other.y)
+private operator fun XY.times(c: Double): XY = XY(x * c, y * c)
+private operator fun XY.div(c: Double): XY = XY(x / c, y / c)
 
-class Spring(
+private class Spring(
     context: Context,
     val k: Double,
     val l0: Double,
@@ -70,7 +70,7 @@ class Spring(
     }
 }
 
-class MaterialPoint(
+private class MaterialPoint(
     context: Context,
     val mass: Double,
     val force: DeviceState<XY>,
@@ -94,7 +94,7 @@ class MaterialPoint(
 }
 
 
-class BodyOnSprings(
+private class BodyOnSprings(
     context: Context,
     mass: Double,
     k: Double,

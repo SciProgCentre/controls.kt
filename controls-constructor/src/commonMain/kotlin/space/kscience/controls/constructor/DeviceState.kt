@@ -74,7 +74,7 @@ public fun <T, R> DeviceState.Companion.map(
 
 public fun <T, R> DeviceState<T>.map(mapper: (T) -> R): DeviceStateWithDependencies<R> = DeviceState.map(this, mapper)
 
-public fun DeviceState<out NumericalValue<out UnitsOfMeasurement>>.values(): DeviceState<Double> = object : DeviceState<Double> {
+public fun DeviceState<NumericalValue<out UnitsOfMeasurement>>.values(): DeviceState<Double> = object : DeviceState<Double> {
     override val value: Double
         get() = this@values.value.value
 

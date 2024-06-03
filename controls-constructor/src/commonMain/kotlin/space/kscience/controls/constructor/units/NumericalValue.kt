@@ -10,7 +10,7 @@ import kotlin.jvm.JvmInline
  * A value without identity coupled to units of measurements.
  */
 @JvmInline
-public value class NumericalValue<U : UnitsOfMeasurement>(public val value: Double): Comparable<NumericalValue<U>> {
+public value class NumericalValue<U : UnitsOfMeasurement>(public val value: Double) : Comparable<NumericalValue<U>> {
     override fun compareTo(other: NumericalValue<U>): Int = value.compareTo(other.value)
 
 }
@@ -42,6 +42,9 @@ public operator fun <U : UnitsOfMeasurement> NumericalValue<U>.times(
 public operator fun <U : UnitsOfMeasurement> NumericalValue<U>.div(
     c: Number,
 ): NumericalValue<U> = NumericalValue(this.value / c.toDouble())
+
+public operator fun <U : UnitsOfMeasurement> NumericalValue<U>.div(other: NumericalValue<U>): Double =
+    value / other.value
 
 
 private object NumericalValueMetaConverter : MetaConverter<NumericalValue<*>> {

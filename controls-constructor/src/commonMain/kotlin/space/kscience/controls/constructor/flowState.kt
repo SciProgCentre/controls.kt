@@ -10,7 +10,7 @@ private class StateFlowAsState<T>(
     override var value: T by flow::value
     override val valueFlow: Flow<T> get() = flow
 
-    override fun toString(): String = "FlowAsState()"
+    override fun toString(): String = "FlowAsState($value)"
 }
 
 /**

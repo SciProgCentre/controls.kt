@@ -23,7 +23,7 @@ private class VirtualDeviceState<T>(
             callback(value)
         }
 
-    override fun toString(): String = "VirtualDeviceState()"
+    override fun toString(): String = "VirtualDeviceState($value)"
 }
 
 

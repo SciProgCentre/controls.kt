@@ -32,12 +32,12 @@ public abstract class DeviceConstructor(
         _constructorElements.remove(constructorElement)
     }
 
-    override fun <T, S: DeviceState<T>> registerAsProperty(
+    override fun <T, S: DeviceState<T>> registerProperty(
         converter: MetaConverter<T>,
         descriptor: PropertyDescriptor,
         state: S,
     ): S {
-        val res = super.registerAsProperty(converter, descriptor, state)
+        val res = super.registerProperty(converter, descriptor, state)
         registerElement(PropertyConstructorElement(this, descriptor.name, state))
         return res
     }
@@ -84,7 +84,7 @@ public fun <T, S : DeviceState<T>> DeviceConstructor.property(
     PropertyDelegateProvider { _: DeviceConstructor, property ->
         val name = nameOverride ?: property.name
         val descriptor = PropertyDescriptor(name).apply(descriptorBuilder)
-        registerAsProperty(converter, descriptor, state)
+        registerProperty(converter, descriptor, state)
         ReadOnlyProperty { _: DeviceConstructor, _ ->
             state
         }
@@ -145,6 +145,6 @@ public fun <T, S : DeviceState<T>> DeviceConstructor.registerAsProperty(
     spec: DevicePropertySpec<*, T>,
     state: S,
 ): S {
-    registerAsProperty(spec.converter, spec.descriptor, state)
+    registerProperty(spec.converter, spec.descriptor, state)
     return state
 }

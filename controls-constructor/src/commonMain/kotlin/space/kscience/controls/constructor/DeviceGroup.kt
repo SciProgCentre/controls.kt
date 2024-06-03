@@ -42,10 +42,15 @@ public open class DeviceGroup(
         }
     }
 
-    private class Action(
-        val invoke: suspend (Meta?) -> Meta?,
+    private class Action<T, R>(
+        val inputConverter: MetaConverter<T>,
+        val outputConverter: MetaConverter<R>,
         val descriptor: ActionDescriptor,
-    )
+        val action: suspend (T) -> R,
+    ) {
+        suspend operator fun invoke(argument: Meta?): Meta? = argument?.let { inputConverter.readOrNull(it) }
+            ?.let { action(it)?.let { outputConverter.convert(it) } }
+    }
 
 
     private val sharedMessageFlow = MutableSharedFlow<DeviceMessage>()
@@ -93,7 +98,7 @@ public open class DeviceGroup(
     /**
      * Register a new property based on [DeviceState]. Properties could be modified dynamically
      */
-    public open fun <T, S : DeviceState<T>> registerAsProperty(
+    public open fun <T, S : DeviceState<T>> registerProperty(
         converter: MetaConverter<T>,
         descriptor: PropertyDescriptor,
         state: S,
@@ -112,7 +117,26 @@ public open class DeviceGroup(
         return state
     }
 
-    private val actions: MutableMap<Name, Action> = hashMapOf()
+    private val actions: MutableMap<Name, Action<*, *>> = hashMapOf()
+
+    public fun <T, R> registerAction(
+        inputConverter: MetaConverter<T>,
+        outputConverter: MetaConverter<R>,
+        descriptor: ActionDescriptor,
+        action: suspend (T) -> R,
+    ): suspend (T) -> R {
+        val name = descriptor.name.parseAsName()
+        require(actions[name] == null) { "Can't add action with name $name. It already exists." }
+        actions[name] = Action(
+            inputConverter = inputConverter,
+            outputConverter = outputConverter,
+            descriptor = descriptor,
+            action = action
+        )
+        return {
+            action(it)
+        }
+    }
 
     override val propertyDescriptors: Collection<PropertyDescriptor>
         get() = properties.values.map { it.descriptor }
@@ -137,8 +161,8 @@ public open class DeviceGroup(
 
 
     override suspend fun execute(actionName: String, argument: Meta?): Meta? {
-        val action = actions[actionName] ?: error("Action with name $actionName not found")
-        return action.invoke(argument)
+        val action: Action<*, *> = actions[actionName] ?: error("Action with name $actionName not found")
+        return action(argument)
     }
 
     final override var lifecycleState: DeviceLifecycleState = DeviceLifecycleState.STOPPED
@@ -176,7 +200,7 @@ public open class DeviceGroup(
 }
 
 public fun <T> DeviceGroup.registerAsProperty(propertySpec: DevicePropertySpec<*, T>, state: DeviceState<T>) {
-    registerAsProperty(propertySpec.converter, propertySpec.descriptor, state)
+    registerProperty(propertySpec.converter, propertySpec.descriptor, state)
 }
 
 public fun DeviceManager.registerDeviceGroup(
@@ -253,7 +277,7 @@ public fun <T : Any> DeviceGroup.registerAsProperty(
     state: DeviceState<T>,
     descriptorBuilder: PropertyDescriptor.() -> Unit = {},
 ) {
-    registerAsProperty(
+    registerProperty(
         converter,
         PropertyDescriptor(name).apply(descriptorBuilder),
         state
@@ -269,7 +293,7 @@ public fun <T : Any> DeviceGroup.registerMutableProperty(
     state: MutableDeviceState<T>,
     descriptorBuilder: PropertyDescriptor.() -> Unit = {},
 ) {
-    registerAsProperty(
+    registerProperty(
         converter,
         PropertyDescriptor(name).apply(descriptorBuilder),
         state
