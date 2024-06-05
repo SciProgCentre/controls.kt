@@ -81,6 +81,8 @@ visionforge-markdown = { module = "space.kscience:visionforge-markdown", version
 visionforge-server = { module = "space.kscience:visionforge-server", version.ref = "visionforge" }
 visionforge-compose-html = { module = "space.kscience:visionforge-compose-html", version.ref = "visionforge" }
 
+sciprog-maps-compose = "space.kscience:maps-kt-compose:0.3.0"
+
 # Buildscript
 
 [plugins]

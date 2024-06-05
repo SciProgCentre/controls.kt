@@ -85,7 +85,7 @@ private class BodyOnSprings(
 }
 
 fun main() = application {
-    val initialState = XYZ<Meters>(0, 0.4, 0)
+    val initialState = XYZ<Meters>(0.05, 0.4, 0)
 
     Window(title = "Ball on springs", onCloseRequest = ::exitApplication) {
         window.minimumSize = Dimension(400, 400)

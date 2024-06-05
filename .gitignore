@@ -1,6 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 .idea/
 .gradle
+.kotlin
 
 *.iws
 *.iml

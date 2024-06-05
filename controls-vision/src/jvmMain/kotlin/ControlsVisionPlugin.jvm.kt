@@ -8,14 +8,14 @@ import space.kscience.dataforge.meta.Meta
 import space.kscience.visionforge.VisionPlugin
 
 public actual class ControlVisionPlugin : VisionPlugin() {
-    override val tag: PluginTag get() = Companion.tag
+    actual override val tag: PluginTag get() = Companion.tag
 
-    override val visionSerializersModule: SerializersModule get() = controlsVisionSerializersModule
+    actual override val visionSerializersModule: SerializersModule get() = controlsVisionSerializersModule
 
     public actual companion object : PluginFactory<ControlVisionPlugin> {
-        override val tag: PluginTag = PluginTag("controls.vision")
+        actual override val tag: PluginTag = PluginTag("controls.vision")
 
-        override fun build(context: Context, meta: Meta): ControlVisionPlugin = ControlVisionPlugin()
+        actual override fun build(context: Context, meta: Meta): ControlVisionPlugin = ControlVisionPlugin()
 
     }
 }

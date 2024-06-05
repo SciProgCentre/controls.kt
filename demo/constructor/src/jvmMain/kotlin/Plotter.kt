@@ -17,7 +17,7 @@ import kotlinx.coroutines.isActive
 import space.kscience.controls.constructor.*
 import space.kscience.controls.constructor.devices.StepDrive
 import space.kscience.controls.constructor.devices.angle
-import space.kscience.controls.constructor.models.ScrewDrive
+import space.kscience.controls.constructor.models.Leadscrew
 import space.kscience.controls.constructor.models.coerceIn
 import space.kscience.controls.constructor.units.*
 import space.kscience.controls.manager.ClockManager
@@ -99,11 +99,11 @@ private class PlotterModel(
 ) : ModelConstructor(context) {
 
     private val xDrive = StepDrive(context, ticksPerSecond)
-    private val xTransmission = ScrewDrive(context, NumericalValue(0.01))
+    private val xTransmission = Leadscrew(context, NumericalValue(0.01))
     val x = xTransmission.degreesToMeters(xDrive.angle(step)).coerceIn(xRange)
 
     private val yDrive = StepDrive(context, ticksPerSecond)
-    private val yTransmission = ScrewDrive(context, NumericalValue(0.01))
+    private val yTransmission = Leadscrew(context, NumericalValue(0.01))
     val y = yTransmission.degreesToMeters(yDrive.angle(step)).coerceIn(yRange)
 
     val xy: DeviceState<XY<Meters>> = combineState(x, y) { x, y -> XY(x, y) }
@@ -143,7 +143,7 @@ suspend fun main() = application {
 
 
             val range = -1000..1000
-//                plotter.modernArt(range, range)
+//            plotterModel.plotter.modernArt(range, range)
             plotterModel.plotter.square(range, range)
 
         }

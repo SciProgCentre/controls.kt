@@ -158,7 +158,7 @@ public fun <T> Plot.plotDeviceState(
 
 public fun Plot.plotNumberState(
     context: Context,
-    state: DeviceState<out Number>,
+    state: DeviceState<Number>,
     maxAge: Duration = defaultMaxAge,
     maxPoints: Int = defaultMaxPoints,
     minPoints: Int = defaultMinPoints,

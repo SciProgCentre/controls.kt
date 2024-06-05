@@ -43,9 +43,9 @@ private val sliderRenderer = ElementVisionRenderer<SliderVision> { name, vision:
 
 
 public actual class ControlVisionPlugin : VisionPlugin() {
-    override val tag: PluginTag get() = Companion.tag
+    actual override val tag: PluginTag get() = Companion.tag
 
-    override val visionSerializersModule: SerializersModule get() = controlsVisionSerializersModule
+    actual override val visionSerializersModule: SerializersModule get() = controlsVisionSerializersModule
 
     override fun content(target: String): Map<Name, Any> = when (target) {
         ElementVisionRenderer.TYPE -> mapOf(
@@ -57,9 +57,9 @@ public actual class ControlVisionPlugin : VisionPlugin() {
     }
 
     public actual companion object : PluginFactory<ControlVisionPlugin> {
-        override val tag: PluginTag = PluginTag("controls.vision")
+        actual override val tag: PluginTag = PluginTag("controls.vision")
 
-        override fun build(context: Context, meta: Meta): ControlVisionPlugin = ControlVisionPlugin()
+        actual override fun build(context: Context, meta: Meta): ControlVisionPlugin = ControlVisionPlugin()
 
     }
 }

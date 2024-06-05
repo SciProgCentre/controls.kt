@@ -32,10 +32,10 @@ import space.kscience.controls.constructor.devices.Drive
 import space.kscience.controls.constructor.devices.LimitSwitch
 import space.kscience.controls.constructor.devices.LinearDrive
 import space.kscience.controls.constructor.models.Inertia
+import space.kscience.controls.constructor.models.Leadscrew
 import space.kscience.controls.constructor.models.MutableRangeState
 import space.kscience.controls.constructor.models.PidParameters
-import space.kscience.controls.constructor.models.ScrewDrive
-import space.kscience.controls.constructor.timer
+import space.kscience.controls.constructor.onTimer
 import space.kscience.controls.constructor.units.Kilograms
 import space.kscience.controls.constructor.units.Meters
 import space.kscience.controls.constructor.units.NumericalValue
@@ -56,13 +56,13 @@ import kotlin.time.DurationUnit
 class Modulator(
     context: Context,
     target: MutableDeviceState<NumericalValue<Meters>>,
-    var freq: Double = 0.1,
     var timeStep: Duration = 5.milliseconds,
+    var freq: Double = 0.1,
 ) : DeviceConstructor(context) {
     private val clockStart = clock.now()
 
-    private val modulation = timer(10.milliseconds).onNext {
-        val timeFromStart = clock.now() - clockStart
+    private val modulation = onTimer(timeStep) { _, next ->
+        val timeFromStart = next - clockStart
         val t = timeFromStart.toDouble(DurationUnit.SECONDS)
         target.value = NumericalValue(
             5 * sin(2.0 * PI * freq * t) +
@@ -72,9 +72,9 @@ class Modulator(
 }
 
 
-private val mass = NumericalValue<Kilograms>(0.1)
+private val mass = NumericalValue<Kilograms>(1)
 
-private val leverage = NumericalValue<Meters>(0.05)
+private val leverage = NumericalValue<Meters>(1.0)
 
 private val maxAge = 10.seconds
 
@@ -95,7 +95,7 @@ internal fun createLinearDriveModel(
     val drive = Drive(context)
 
     //a screw drive to convert a rotational moment into a force
-    val screwDrive = ScrewDrive(context, leverage)
+    val leadscrew = Leadscrew(context, leverage)
 
 
     /**
@@ -107,7 +107,7 @@ internal fun createLinearDriveModel(
      */
     val inertiaModel = Inertia.linear(
         context = context,
-        force = screwDrive.torqueToForce(drive.force),
+        force = leadscrew.torqueToForce(drive.force),
         mass = mass,
         position = position
     )
@@ -130,6 +130,8 @@ private fun createModulator(linearDrive: LinearDrive): Modulator = linearDrive.c
     Modulator(linearDrive.context, linearDrive.pid.target)
 )
 
+private val startPid = PidParameters(kp = 250.0, ki = 0.0, kd = -20.0, timeStep = 20.milliseconds)
+
 @OptIn(ExperimentalSplitPaneApi::class, ExperimentalKoalaPlotApi::class)
 fun main() = application {
     val context = remember {
@@ -140,7 +142,7 @@ fun main() = application {
     }
 
     var pidParameters by remember {
-        mutableStateOf(PidParameters(kp = 900.0, ki = 20.0, kd = -50.0, timeStep = 0.005.seconds))
+        mutableStateOf(startPid)
     }
 
     val linearDrive: LinearDrive = remember {
@@ -183,14 +185,14 @@ fun main() = application {
                             NumberTextField(
                                 value = pidParameters.kp,
                                 onValueChange = { pidParameters = pidParameters.copy(kp = it.toDouble()) },
-                                formatter = { String.format("%.2f", it.toDouble()) },
-                                step = 1.0,
+                                formatter = { String.format("%.3f", it.toDouble()) },
+                                step = 0.01,
                                 modifier = Modifier.width(200.dp),
                             )
                             Slider(
                                 pidParameters.kp.toFloat(),
                                 { pidParameters = pidParameters.copy(kp = it.toDouble()) },
-                                valueRange = 0f..1000f,
+                                valueRange = 0f..100f,
                                 steps = 100
                             )
                         }
@@ -199,15 +201,15 @@ fun main() = application {
                             NumberTextField(
                                 value = pidParameters.ki,
                                 onValueChange = { pidParameters = pidParameters.copy(ki = it.toDouble()) },
-                                formatter = { String.format("%.2f", it.toDouble()) },
-                                step = 0.1,
+                                formatter = { String.format("%.3f", it.toDouble()) },
+                                step = 0.01,
                                 modifier = Modifier.width(200.dp),
                             )
 
                             Slider(
                                 pidParameters.ki.toFloat(),
                                 { pidParameters = pidParameters.copy(ki = it.toDouble()) },
-                                valueRange = -100f..100f,
+                                valueRange = -10f..10f,
                                 steps = 100
                             )
                         }
@@ -216,15 +218,15 @@ fun main() = application {
                             NumberTextField(
                                 value = pidParameters.kd,
                                 onValueChange = { pidParameters = pidParameters.copy(kd = it.toDouble()) },
-                                formatter = { String.format("%.2f", it.toDouble()) },
-                                step = 0.1,
+                                formatter = { String.format("%.3f", it.toDouble()) },
+                                step = 0.01,
                                 modifier = Modifier.width(200.dp),
                             )
 
                             Slider(
                                 pidParameters.kd.toFloat(),
                                 { pidParameters = pidParameters.copy(kd = it.toDouble()) },
-                                valueRange = -100f..100f,
+                                valueRange = -10f..10f,
                                 steps = 100
                             )
                         }
@@ -247,12 +249,7 @@ fun main() = application {
                         }
                         Row {
                             Button({
-                                pidParameters = PidParameters(
-                                    kp = 2.5,
-                                    ki = 0.0,
-                                    kd = -0.1,
-                                    timeStep = 0.005.seconds
-                                )
+                                pidParameters = startPid
                             }) {
                                 Text("Reset")
                             }

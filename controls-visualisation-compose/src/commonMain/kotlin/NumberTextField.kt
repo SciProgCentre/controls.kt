@@ -2,8 +2,8 @@ package space.kscience.controls.compose
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,7 +30,7 @@ public fun NumberTextField(
     Row (verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         step.takeIf { it > 0.0 }?.let {
             IconButton({ onValueChange(value.toDouble() - step) }, enabled = enabled) {
-                Icon(Icons.Default.KeyboardArrowLeft, "decrease value")
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "decrease value")
             }
         }
         TextField(
@@ -52,7 +52,7 @@ public fun NumberTextField(
         )
         step.takeIf { it > 0.0 }?.let {
             IconButton({ onValueChange(value.toDouble() + step) }, enabled = enabled) {
-                Icon(Icons.Default.KeyboardArrowRight, "increase value")
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "increase value")
             }
         }
     }
